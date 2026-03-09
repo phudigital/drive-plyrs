@@ -1,0 +1,9 @@
+# Cache files
+cache/
+
+# Config with API key
+config.php
+
+# OS files
+.DS_Store
+Thumbs.db

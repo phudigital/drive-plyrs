@@ -1,0 +1,29 @@
+# Drive Players - Apache Configuration
+
+# Deny access to sensitive files
+<FilesMatch "\.(php|json)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+<FilesMatch "^(config\.php|drive-api\.php)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Deny access to cache directory
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^cache/ - [F,L]
+</IfModule>
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Cache static assets
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/svg+xml "access plus 1 month"
+</IfModule>
