@@ -1,6 +1,6 @@
 /**
  * Drive Players - JavaScript
- * Version: 2.0.0
+ * Version: 2.2.0
  * Video playback powered by Plyr.io
  */
 
@@ -19,9 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
    Plyr Player Initialization
    ========================================================================== */
 
+let _fallbackTriggered = false;
+let _fallbackTimer = null;
+
 function initPlyrPlayer() {
     const videoEl = document.getElementById('plyr-player');
     if (!videoEl) return;
+
+    _fallbackTriggered = false;
 
     plyrInstance = new Plyr(videoEl, {
         controls: [
@@ -99,47 +104,73 @@ function initPlyrPlayer() {
                 480: 'SD',
             },
         },
-        // Fallback / error handling
-        listeners: {
-            error: function(event) {
-                handlePlayerError();
-            }
+    });
+
+    // --- Error-based fallback ---
+    plyrInstance.on('error', () => triggerFallback());
+    videoEl.addEventListener('error', () => triggerFallback());
+
+    // --- Success: cancel timeout when video loads properly ---
+    const cancelFallbackTimer = () => {
+        if (_fallbackTimer) {
+            clearTimeout(_fallbackTimer);
+            _fallbackTimer = null;
         }
-    });
+    };
 
-    // Handle media errors — fallback to iframe embed
-    plyrInstance.on('error', (event) => {
-        handlePlayerError();
-    });
+    plyrInstance.on('loadedmetadata', cancelFallbackTimer);
+    plyrInstance.on('loadeddata', cancelFallbackTimer);
+    plyrInstance.on('playing', cancelFallbackTimer);
 
-    // Also listen on the native video element error
-    videoEl.addEventListener('error', () => {
-        handlePlayerError();
-    });
+    // --- Timeout fallback ---
+    // If video metadata hasn't loaded within 8 seconds, the direct
+    // streaming URL is likely blocked by Google Drive (CORS / large file /
+    // restricted sharing). Switch to iframe embed automatically.
+    _fallbackTimer = setTimeout(() => {
+        const nativeVideo = plyrInstance?.media;
+        if (nativeVideo && nativeVideo.readyState < 2 && !_fallbackTriggered) {
+            console.warn('[DrivePlayers] Video metadata timeout — falling back to iframe embed');
+            triggerFallback();
+        }
+    }, 8000);
+}
+
+/**
+ * Extract Google Drive file ID from the current video source URL
+ */
+function getFileIdFromPlayer() {
+    // Try Plyr's media element first, then raw DOM
+    const videoEl = plyrInstance?.media || document.getElementById('plyr-player');
+    if (!videoEl) return null;
+
+    const source = videoEl.querySelector?.('source') || videoEl;
+    const srcUrl = source.getAttribute?.('src') || '';
+    const match = srcUrl.match(/files\/([^?]+)/);
+    return match ? match[1] : null;
 }
 
 /**
  * Fallback: when direct streaming fails (e.g. CORS, large files),
  * switch to the Google Drive preview iframe.
+ * Prevents double-triggering.
  */
-function handlePlayerError() {
+function triggerFallback() {
+    if (_fallbackTriggered) return;
+    _fallbackTriggered = true;
+
+    // Cancel any pending timeout
+    if (_fallbackTimer) {
+        clearTimeout(_fallbackTimer);
+        _fallbackTimer = null;
+    }
+
     const container = document.getElementById('video-container');
-    const videoEl = document.getElementById('plyr-player');
-    if (!container || !videoEl) return;
-
-    // Extract file ID from the source URL
-    const source = videoEl.querySelector('source');
-    if (!source) return;
-
-    const srcUrl = source.getAttribute('src');
-    const match = srcUrl.match(/files\/([^?]+)/);
-    if (!match) return;
-
-    const fileId = match[1];
+    const fileId = getFileIdFromPlayer();
+    if (!container || !fileId) return;
 
     // Destroy Plyr instance
     if (plyrInstance) {
-        plyrInstance.destroy();
+        try { plyrInstance.destroy(); } catch (e) { /* ignore */ }
         plyrInstance = null;
     }
 
