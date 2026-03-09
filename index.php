@@ -1,7 +1,7 @@
 <?php
 /**
  * Drive Players - Google Drive Video Player
- * Version: 2.2.0
+ * Version: 2.3.5
  *
  * A simple video player that loads video list from Google Drive folder
  * Uses Google Drive API v3 with API Key (no OAuth login required)
@@ -9,7 +9,7 @@
  * Video playback powered by Plyr.io
  */
 
-define('APP_VERSION', '2.3.0');
+define('APP_VERSION', '2.3.5');
 
 session_start();
 require_once __DIR__ . '/config.php';
