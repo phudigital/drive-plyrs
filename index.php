@@ -9,7 +9,7 @@
  * Video playback powered by Plyr.io
  */
 
-define('APP_VERSION', '2.4.0');
+define('APP_VERSION', '2.5.0');
 
 session_start();
 require_once __DIR__ . '/config.php';
@@ -80,6 +80,27 @@ if (isset($_GET['clear'])) {
 if (isset($_GET['clear_history'])) {
     clearHistory();
     header('Location: index.php');
+    exit;
+}
+
+// -------------------------------------------------------
+// Restore folder from history and redirect to video
+// -------------------------------------------------------
+if (isset($_GET['restore']) && isset($_GET['v'])) {
+    $restoreFolderId = trim($_GET['restore']);
+    $restoreVideoId  = trim($_GET['v']);
+    if ($restoreFolderId && $restoreVideoId) {
+        // Extract and validate folder ID
+        $cleanFolderId = preg_match('/^[a-zA-Z0-9_-]{10,}$/', $restoreFolderId)
+            ? $restoreFolderId : null;
+        if ($cleanFolderId) {
+            $_SESSION['folder_id']       = $cleanFolderId;
+            $_SESSION['drive_url']       = $cleanFolderId;
+            $_SESSION['breadcrumb']      = [['id' => $cleanFolderId, 'name' => $_GET['fname'] ?? 'Folder']];
+            $_SESSION['root_folder_id']  = $cleanFolderId;
+        }
+    }
+    header('Location: index.php?v=' . urlencode($restoreVideoId));
     exit;
 }
 
@@ -321,29 +342,10 @@ function saveCache($cacheFile, $data) {
                     </div>
                 </form>
 
-                <div class="landing-hints">
-                    <div class="hint-card" id="hint-1">
-                        <div class="hint-icon">📁</div>
-                        <div class="hint-text">
-                            <strong>Bước 1</strong>
-                            <span>Mở thư mục video trên Google Drive</span>
-                        </div>
-                    </div>
-                    <div class="hint-card" id="hint-2">
-                        <div class="hint-icon">🔗</div>
-                        <div class="hint-text">
-                            <strong>Bước 2</strong>
-                            <span>Copy link chia sẻ thư mục</span>
-                        </div>
-                    </div>
-                    <div class="hint-card" id="hint-3">
-                        <div class="hint-icon">▶️</div>
-                        <div class="hint-text">
-                            <strong>Bước 3</strong>
-                            <span>Dán link và bắt đầu xem!</span>
-                        </div>
-                    </div>
-                </div>
+                <p class="landing-guide">
+                    📁 Mở thư mục Google Drive &rarr; chia sẻ &rarr; copy link &rarr; dán vào ô trên<br>
+                    🔑 Thư mục cần được <strong>chia sẻ công khai</strong> (Anyone with the link)
+                </p>
 
                 <?php if (!empty($watchHistory)): ?>
                 <!-- ===== WATCH HISTORY ===== -->
@@ -361,9 +363,8 @@ function saveCache($cacheFile, $data) {
                     </div>
                     <div class="history-list" id="history-list">
                         <?php foreach (array_slice($watchHistory, 0, 12) as $hi => $hitem): ?>
-                        <a href="index.php?v=<?php echo urlencode($hitem['video_id']); ?>"
+                        <a href="index.php?restore=<?php echo urlencode($hitem['folder_id']); ?>&v=<?php echo urlencode($hitem['video_id']); ?>&fname=<?php echo urlencode($hitem['folder_name']); ?>"
                            class="history-item" id="history-item-<?php echo $hi; ?>"
-                           onclick="setFolderBeforeHistory('<?php echo htmlspecialchars($hitem['folder_id']); ?>', '<?php echo htmlspecialchars(addslashes($hitem['folder_name'])); ?>')"
                         >
                             <div class="history-item-icon">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -407,6 +408,16 @@ function saveCache($cacheFile, $data) {
         <?php else: ?>
         <!-- ============================= PLAYER LAYOUT ============================= -->
         <div class="player-layout" id="player-layout">
+
+            <!-- Floating button to reopen sidebar when closed -->
+            <button class="sidebar-open-btn" id="sidebar-open-btn" title="Mở danh sách (b)" aria-label="Mở danh sách">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+                <span>Danh sách</span>
+            </button>
 
             <!-- ---- Main Player ---- -->
             <div class="player-main" id="player-main">

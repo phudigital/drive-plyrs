@@ -1,6 +1,6 @@
 /**
  * Drive Players - JavaScript
- * Version: 2.4.0
+ * Version: 2.5.0
  * Video playback powered by Plyr.io
  */
 
@@ -194,13 +194,14 @@ function triggerFallback() {
    ========================================================================== */
 
 function initSidebarToggle() {
-    // Primary: sidebar-toggle-btn (in sidebar header)
-    // Fallback: menu-toggle (legacy, no longer in header)
-    const toggleBtn    = document.getElementById('sidebar-toggle-btn')
-                      || document.getElementById('menu-toggle');
-    const layout       = document.getElementById('player-layout');
+    // Primary close button: inside sidebar header
+    const toggleBtn  = document.getElementById('sidebar-toggle-btn')
+                    || document.getElementById('menu-toggle');
+    // Open button: floating pill shown when sidebar is closed
+    const openBtn    = document.getElementById('sidebar-open-btn');
+    const layout     = document.getElementById('player-layout');
 
-    if (!toggleBtn || !layout) return;
+    if (!layout) return;
 
     // Restore saved state (default: open)
     const savedOpen = localStorage.getItem(SIDEBAR_KEY);
@@ -211,17 +212,28 @@ function initSidebarToggle() {
         document.body.classList.add('sidebar-is-closed');
     }
 
-    updateToggleIcon(toggleBtn, isOpen);
+    if (toggleBtn) updateToggleIcon(toggleBtn, isOpen);
 
-    function toggle() {
-        const closing = !layout.classList.contains('sidebar-closed');
-        layout.classList.toggle('sidebar-closed', closing);
-        document.body.classList.toggle('sidebar-is-closed', closing);
-        localStorage.setItem(SIDEBAR_KEY, closing ? '0' : '1');
-        updateToggleIcon(toggleBtn, !closing);
+    function open() {
+        layout.classList.remove('sidebar-closed');
+        document.body.classList.remove('sidebar-is-closed');
+        localStorage.setItem(SIDEBAR_KEY, '1');
+        if (toggleBtn) updateToggleIcon(toggleBtn, true);
     }
 
-    toggleBtn.addEventListener('click', toggle);
+    function close() {
+        layout.classList.add('sidebar-closed');
+        document.body.classList.add('sidebar-is-closed');
+        localStorage.setItem(SIDEBAR_KEY, '0');
+        if (toggleBtn) updateToggleIcon(toggleBtn, false);
+    }
+
+    function toggle() {
+        layout.classList.contains('sidebar-closed') ? open() : close();
+    }
+
+    if (toggleBtn) toggleBtn.addEventListener('click', toggle);
+    if (openBtn)   openBtn.addEventListener('click', open);
 }
 
 /**
@@ -360,36 +372,4 @@ function showToast(message, duration = 3000) {
 function isInputFocused() {
     const el = document.activeElement;
     return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
-}
-
-/* ==========================================================================
-   Watch History Helper
-   ========================================================================== */
-
-/**
- * Called from history item onclick — sets the folder session via a hidden form
- * so the server knows which folder we came from before navigating to the video.
- */
-function setFolderBeforeHistory(folderId, folderName) {
-    if (!folderId) return;
-    // Submit folder URL via a temporary form POST so PHP session is set
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = 'index.php';
-    form.style.display = 'none';
-
-    const urlInput = document.createElement('input');
-    urlInput.name  = 'drive_url';
-    urlInput.value = folderId;
-    form.appendChild(urlInput);
-
-    // After form submit sets the session, PHP will redirect — but we want
-    // to go to the video. So we use fetch instead.
-    fetch('index.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `drive_url=${encodeURIComponent(folderId)}`,
-        redirect: 'manual',
-    }).catch(() => {});
-    // Navigation continues via the <a href> normally after fetch fires
 }

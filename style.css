@@ -1,6 +1,6 @@
 /* ==========================================================================
    Drive Players - CSS Design System
-   Version: 2.4.0
+   Version: 2.5.0
    ========================================================================== */
 
 /* ---------- CSS Variables / Design Tokens ---------- */
@@ -344,13 +344,21 @@ body.sidebar-is-closed #menu-toggle {
 .landing-subtitle {
     font-size: 16px;
     color: var(--text-secondary);
-    margin-bottom: 40px;
+    margin-bottom: 16px;
     line-height: 1.6;
+}
+
+.landing-guide {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.9;
+    margin-bottom: 32px;
+    opacity: 0.85;
 }
 
 /* ---------- Landing Form ---------- */
 .landing-form {
-    margin-bottom: 48px;
+    margin-bottom: 32px;
 }
 
 .landing-input-group {
@@ -641,13 +649,25 @@ body.sidebar-is-closed #menu-toggle {
     max-width: 1800px;
     margin: 0 auto;
     animation: fadeInUp 0.5s ease;
+    transition: padding var(--transition-slow);
+}
+
+/* Level 2: sidebar hidden — video wider but not full */
+.player-layout.sidebar-closed {
+    max-width: 1200px;
+}
+
+/* Level 3: theater — full viewport width */
+.player-layout.sidebar-theater {
+    max-width: 100%;
+    padding: 0;
 }
 
 /* ---------- Player Main ---------- */
 .player-main {
-    flex: 1 1 0;    /* grow, shrink, zero basis — avoids width leak in flex */
-    min-width: 0;   /* critical: lets flex child shrink below content width */
-    width: 0;       /* force flex sizing, not intrinsic width */
+    flex: 1 1 0;
+    min-width: 0;
+    width: 0;
     transition: flex var(--transition-slow);
 }
 
@@ -1055,11 +1075,66 @@ body.sidebar-is-closed #menu-toggle {
     margin-left: 0;
     opacity: 0;
     pointer-events: none;
+    overflow: hidden;
 }
 
 /* Expand player when sidebar is closed */
 .player-layout.sidebar-closed .player-main {
     max-width: 100%;
+}
+
+/* Theater mode: video even wider (full layout) */
+.player-layout.sidebar-theater .sidebar {
+    width: 0;
+    margin-left: 0;
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.player-layout.sidebar-theater .player-main {
+    max-width: 100%;
+}
+
+/* ---------- Sidebar Open Button (floating, shown when sidebar closed) ---------- */
+.sidebar-open-btn {
+    display: none; /* hidden by default */
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 200;
+    padding: 10px 18px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.sidebar-open-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: transparent;
+    transform: translateY(-2px);
+}
+
+/* Only show when sidebar is closed, on desktop */
+@media (min-width: 1025px) {
+    .page-player .player-layout.sidebar-closed ~ * .sidebar-open-btn,
+    .player-layout.sidebar-closed .sidebar-open-btn {
+        display: flex;
+    }
+}
+
+/* Show as floating pill regardless of position in DOM */
+.page-player.sidebar-is-closed .sidebar-open-btn {
+    display: flex;
 }
 
 .sidebar-header {
