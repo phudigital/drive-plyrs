@@ -177,15 +177,15 @@ function saveCache($cacheFile, $data) {
     <meta property="og:url" content="https://drive-player.example.com">
     <meta property="og:title" content="<?php echo $currentVideo ? htmlspecialchars(pathinfo($currentVideo['name'], PATHINFO_FILENAME)) . ' - ' : ''; ?>DrivePlayers - Xem video Google Drive cực mượt">
     <meta property="og:description" content="Trình phát video mượt mà, hỗ trợ giao diện bóng bẩy như YouTube dành riêng cho thư mục Google Drive của bạn.">
-    <meta property="og:image" content="og-image.png">
+    <meta property="og:image" content="assets/og-image.png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:title" content="DrivePlayers - Xem video Google Drive cực mượt">
     <meta property="twitter:description" content="Trình phát video mượt mà, hỗ trợ giao diện bóng bẩy như YouTube dành riêng cho thư mục Google Drive của bạn.">
-    <meta property="twitter:image" content="og-image.png">
+    <meta property="twitter:image" content="assets/og-image.png">
 
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
