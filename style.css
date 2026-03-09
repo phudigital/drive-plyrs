@@ -1,6 +1,6 @@
 /* ==========================================================================
    Drive Players - CSS Design System
-   Version: 2.5.0
+   Version: 2.6.0
    ========================================================================== */
 
 /* ---------- CSS Variables / Design Tokens ---------- */
@@ -817,6 +817,65 @@ body.sidebar-is-closed #menu-toggle {
     color: var(--accent) !important;
 }
 
+
+/* ---------- Fallback Notice Bar ---------- */
+.fallback-notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    background: rgba(255, 165, 0, 0.08);
+    border: 1px solid rgba(255, 165, 0, 0.25);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.fallback-notice span {
+    flex: 1;
+    min-width: 160px;
+}
+
+.btn-try-proxy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--accent-gradient);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    white-space: nowrap;
+}
+
+.btn-try-proxy:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+}
+
+.btn-open-drive {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    transition: background var(--transition-fast), color var(--transition-fast);
+    white-space: nowrap;
+}
+
+.btn-open-drive:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
 
 /* ---------- Video Info ---------- */
 .video-info {

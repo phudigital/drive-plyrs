@@ -1,12 +1,14 @@
 /**
  * Drive Players - JavaScript
- * Version: 2.5.0
+ * Version: 2.6.0
  * Video playback powered by Plyr.io
  */
 
 const SIDEBAR_KEY = 'dp_sidebar_open';
-let plyrInstance = null;
-
+let plyrInstance   = null;
+let _fallbackLevel = 0; // 0=plyr direct, 1=iframe embed, 2=proxy
+let _fallbackTimer = null;
+let _currentFileId = null;
 document.addEventListener('DOMContentLoaded', () => {
     initPlyrPlayer();
     initSidebarToggle();
@@ -19,14 +21,17 @@ document.addEventListener('DOMContentLoaded', () => {
    Plyr Player Initialization
    ========================================================================== */
 
-let _fallbackTriggered = false;
-let _fallbackTimer = null;
 
 function initPlyrPlayer() {
     const videoEl = document.getElementById('plyr-player');
     if (!videoEl) return;
 
-    _fallbackTriggered = false;
+    _fallbackLevel = 0;
+
+    // Cache the file ID from the source URL
+    const srcUrl = videoEl.querySelector('source')?.src || '';
+    const m = srcUrl.match(/files\/([^?]+)/);
+    _currentFileId = m ? m[1] : null;
 
     plyrInstance = new Plyr(videoEl, {
         controls: [
@@ -107,10 +112,10 @@ function initPlyrPlayer() {
     });
 
     // --- Error-based fallback ---
-    plyrInstance.on('error', () => triggerFallback());
-    videoEl.addEventListener('error', () => triggerFallback());
+    plyrInstance.on('error', () => fallbackToIframe());
+    videoEl.addEventListener('error', () => fallbackToIframe());
 
-    // --- Success: cancel timeout when video loads properly ---
+    // --- Success: cancel timeout ---
     const cancelFallbackTimer = () => {
         if (_fallbackTimer) {
             clearTimeout(_fallbackTimer);
@@ -122,71 +127,115 @@ function initPlyrPlayer() {
     plyrInstance.on('loadeddata', cancelFallbackTimer);
     plyrInstance.on('playing', cancelFallbackTimer);
 
-    // --- Timeout fallback ---
-    // If video metadata hasn't loaded within 8 seconds, the direct
-    // streaming URL is likely blocked by Google Drive (CORS / large file /
-    // restricted sharing). Switch to iframe embed automatically.
+    // --- Timeout → auto iframe fallback ---
     _fallbackTimer = setTimeout(() => {
         const nativeVideo = plyrInstance?.media;
-        if (nativeVideo && nativeVideo.readyState < 2 && !_fallbackTriggered) {
-            console.warn('[DrivePlayers] Video metadata timeout — falling back to iframe embed');
-            triggerFallback();
+        if (nativeVideo && nativeVideo.readyState < 2 && _fallbackLevel === 0) {
+            console.warn('[DrivePlayers] Timeout — falling back to iframe');
+            fallbackToIframe();
         }
     }, 8000);
 }
 
-/**
- * Extract Google Drive file ID from the current video source URL
- */
+/** Fallback helper: extract file ID from current Plyr source URL */
 function getFileIdFromPlayer() {
-    // Try Plyr's media element first, then raw DOM
     const videoEl = plyrInstance?.media || document.getElementById('plyr-player');
     if (!videoEl) return null;
-
-    const source = videoEl.querySelector?.('source') || videoEl;
-    const srcUrl = source.getAttribute?.('src') || '';
-    const match = srcUrl.match(/files\/([^?]+)/);
-    return match ? match[1] : null;
+    const src = (videoEl.querySelector?.('source') || videoEl).getAttribute?.('src') || '';
+    return src.match(/files\/([^?]+)/)?.[1] || null;
 }
 
 /**
- * Fallback: when direct streaming fails (e.g. CORS, large files),
- * switch to the Google Drive preview iframe.
- * Prevents double-triggering.
+ * Level 1 → Level 2: Switch to Google Drive embed iframe
  */
-function triggerFallback() {
-    if (_fallbackTriggered) return;
-    _fallbackTriggered = true;
+function fallbackToIframe() {
+    if (_fallbackLevel >= 1) return;
+    _fallbackLevel = 1;
 
-    // Cancel any pending timeout
-    if (_fallbackTimer) {
-        clearTimeout(_fallbackTimer);
-        _fallbackTimer = null;
-    }
+    if (_fallbackTimer) { clearTimeout(_fallbackTimer); _fallbackTimer = null; }
 
+    const fileId = _currentFileId || getFileIdFromPlayer();
     const container = document.getElementById('video-container');
-    const fileId = getFileIdFromPlayer();
     if (!container || !fileId) return;
 
-    // Destroy Plyr instance
     if (plyrInstance) {
-        try { plyrInstance.destroy(); } catch (e) { /* ignore */ }
+        try { plyrInstance.destroy(); } catch (e) {}
         plyrInstance = null;
     }
 
-    // Replace with iframe fallback
     container.innerHTML = `
-        <iframe
-            id="video-player-iframe"
-            src="https://drive.google.com/file/d/${fileId}/preview"
-            frameborder="0"
-            allowfullscreen
-            allow="autoplay; encrypted-media; fullscreen"
-            class="video-iframe"
-        ></iframe>
+        <div style="position:relative;width:100%;aspect-ratio:16/9">
+            <iframe
+                id="video-player-iframe"
+                src="https://drive.google.com/file/d/${fileId}/preview"
+                frameborder="0"
+                allowfullscreen
+                allow="autoplay; encrypted-media; fullscreen"
+                class="video-iframe"
+            ></iframe>
+        </div>
+        <div class="fallback-notice" id="fallback-notice">
+            <span>⚠️ Đang dùng chế độ nhúng. Video không load?</span>
+            <button class="btn-try-proxy" id="btn-try-proxy" onclick="fallbackToProxy()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                Thử Proxy
+            </button>
+            <a class="btn-open-drive" href="https://drive.google.com/file/d/${fileId}/view" target="_blank" rel="noopener">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+                Mở Google Drive
+            </a>
+        </div>
     `;
 
-    showToast('⚠️ Đã chuyển sang chế độ xem nhúng (embedded)');
+    showToast('⚠️ Đã chuyển sang chế độ nhúng (embedded)');
+}
+
+/**
+ * Level 2 → Level 3: Proxy stream through our PHP server
+ */
+function fallbackToProxy() {
+    if (_fallbackLevel >= 2) return;
+    _fallbackLevel = 2;
+
+    const fileId = _currentFileId;
+    const container = document.getElementById('video-container');
+    if (!container || !fileId) return;
+
+    const proxyUrl = `proxy.php?id=${encodeURIComponent(fileId)}`;
+
+    container.innerHTML = `
+        <video
+            id="plyr-player-proxy"
+            controls
+            playsinline
+            style="width:100%;aspect-ratio:16/9;background:#000;display:block"
+        >
+            <source src="${proxyUrl}" type="video/mp4">
+        </video>
+        <div class="fallback-notice" id="fallback-notice">
+            <span>🔄 Đang dùng proxy stream. Nếu vẫn lỗi:</span>
+            <a class="btn-open-drive" href="https://drive.google.com/file/d/${fileId}/view" target="_blank" rel="noopener">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+                Mở trong Google Drive
+            </a>
+            <a class="btn-open-drive" href="proxy.php?id=${encodeURIComponent(fileId)}" download>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                Tải xuống
+            </a>
+        </div>
+    `;
+
+    // Try to init Plyr on the proxy video
+    try {
+        const proxyVideo = document.getElementById('plyr-player-proxy');
+        if (proxyVideo && window.Plyr) {
+            plyrInstance = new Plyr(proxyVideo, {
+                controls: ['play-large','play','progress','current-time','duration','mute','volume','fullscreen'],
+            });
+        }
+    } catch (e) {}
+
+    showToast('🔄 Đang stream qua proxy server...');
 }
 
 /* ==========================================================================
