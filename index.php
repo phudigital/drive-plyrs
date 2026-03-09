@@ -193,8 +193,10 @@ function saveCache($cacheFile, $data) {
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <link rel="stylesheet" href="style.css?v=<?php echo APP_VERSION; ?>">
 </head>
-<body>
-    <!-- ===== HEADER ===== -->
+<body class="<?php echo $folderId ? 'page-player' : 'page-landing'; ?>">
+
+    <?php if ($folderId): ?>
+    <!-- ===== HEADER (only shown inside folders) ===== -->
     <header class="header" id="main-header">
         <div class="header-left">
             <button class="menu-toggle" id="menu-toggle" aria-label="Toggle sidebar">
@@ -252,6 +254,7 @@ function saveCache($cacheFile, $data) {
             <?php endif; ?>
         </div>
     </header>
+    <?php endif; ?>
 
     <main class="main-content <?php echo $folderId ? 'has-videos' : ''; ?>" id="main-content">
 
@@ -525,7 +528,7 @@ function saveCache($cacheFile, $data) {
                     </div>
                     <?php endif; ?>
 
-                    <!-- Video items -->
+                    <!-- Video items (compact list, no thumbnails) -->
                     <?php foreach ($videos as $index => $video):
                         $isActive = $currentVideo && $currentVideo['id'] === $video['id'];
                     ?>
@@ -545,23 +548,15 @@ function saveCache($cacheFile, $data) {
                                 <?php echo $index + 1; ?>
                             <?php endif; ?>
                         </div>
-                        <div class="video-item-thumb">
-                            <img
-                                src="<?php echo htmlspecialchars($video['thumbnail']); ?>"
-                                alt="<?php echo htmlspecialchars($video['name']); ?>"
-                                loading="lazy"
-                                onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%2290%22><rect fill=%22%23282828%22 width=%22160%22 height=%2290%22/><text x=%2250%%22 y=%2250%%22 fill=%22%23666%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2214%22>🎬</text></svg>'"
-                            >
-                            <?php if ($video['duration']): ?>
-                            <span class="thumb-duration"><?php echo $video['duration']; ?></span>
-                            <?php endif; ?>
-                            <div class="thumb-play-icon">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg>
-                            </div>
-                        </div>
                         <div class="video-item-info">
                             <h3 class="video-item-title"><?php echo htmlspecialchars(pathinfo($video['name'], PATHINFO_FILENAME)); ?></h3>
                             <div class="video-item-meta">
+                                <?php if ($video['duration']): ?>
+                                <span class="item-duration">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    <?php echo $video['duration']; ?>
+                                </span>
+                                <?php endif; ?>
                                 <?php if ($video['resolution']): ?>
                                 <span class="item-resolution"><?php echo $video['resolution']; ?></span>
                                 <?php endif; ?>
