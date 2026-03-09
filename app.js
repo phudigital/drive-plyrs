@@ -1,6 +1,6 @@
 /**
  * Drive Players - JavaScript
- * Version: 2.3.0
+ * Version: 2.4.0
  * Video playback powered by Plyr.io
  */
 
@@ -194,40 +194,34 @@ function triggerFallback() {
    ========================================================================== */
 
 function initSidebarToggle() {
-    const menuBtn      = document.getElementById('menu-toggle');
+    // Primary: sidebar-toggle-btn (in sidebar header)
+    // Fallback: menu-toggle (legacy, no longer in header)
+    const toggleBtn    = document.getElementById('sidebar-toggle-btn')
+                      || document.getElementById('menu-toggle');
     const layout       = document.getElementById('player-layout');
-    const sidebar      = document.getElementById('sidebar');
-    const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
 
-    if (!menuBtn) return;
+    if (!toggleBtn || !layout) return;
 
     // Restore saved state (default: open)
     const savedOpen = localStorage.getItem(SIDEBAR_KEY);
     const isOpen    = savedOpen === null ? true : savedOpen === '1';
 
-    if (layout && !isOpen) {
+    if (!isOpen) {
         layout.classList.add('sidebar-closed');
         document.body.classList.add('sidebar-is-closed');
     }
 
-    updateToggleIcon(menuBtn, isOpen);
+    updateToggleIcon(toggleBtn, isOpen);
 
-    // Main toggle handler
     function toggle() {
-        if (!layout) return;
         const closing = !layout.classList.contains('sidebar-closed');
         layout.classList.toggle('sidebar-closed', closing);
         document.body.classList.toggle('sidebar-is-closed', closing);
         localStorage.setItem(SIDEBAR_KEY, closing ? '0' : '1');
-        updateToggleIcon(menuBtn, !closing);
+        updateToggleIcon(toggleBtn, !closing);
     }
 
-    menuBtn.addEventListener('click', toggle);
-
-    // Extra button inside sidebar header (if present)
-    if (sidebarToggleBtn) {
-        sidebarToggleBtn.addEventListener('click', toggle);
-    }
+    toggleBtn.addEventListener('click', toggle);
 }
 
 /**
@@ -287,7 +281,9 @@ function initKeyboardShortcuts() {
 
         // 'b' — toggle sidebar
         if (e.key === 'b' || e.key === 'B') {
-            document.getElementById('menu-toggle')?.click();
+            const btn = document.getElementById('sidebar-toggle-btn')
+                     || document.getElementById('menu-toggle');
+            btn?.click();
         }
 
         // 'Escape' — blur active input
@@ -364,4 +360,36 @@ function showToast(message, duration = 3000) {
 function isInputFocused() {
     const el = document.activeElement;
     return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+}
+
+/* ==========================================================================
+   Watch History Helper
+   ========================================================================== */
+
+/**
+ * Called from history item onclick — sets the folder session via a hidden form
+ * so the server knows which folder we came from before navigating to the video.
+ */
+function setFolderBeforeHistory(folderId, folderName) {
+    if (!folderId) return;
+    // Submit folder URL via a temporary form POST so PHP session is set
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'index.php';
+    form.style.display = 'none';
+
+    const urlInput = document.createElement('input');
+    urlInput.name  = 'drive_url';
+    urlInput.value = folderId;
+    form.appendChild(urlInput);
+
+    // After form submit sets the session, PHP will redirect — but we want
+    // to go to the video. So we use fetch instead.
+    fetch('index.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `drive_url=${encodeURIComponent(folderId)}`,
+        redirect: 'manual',
+    }).catch(() => {});
+    // Navigation continues via the <a href> normally after fetch fires
 }

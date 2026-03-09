@@ -1,7 +1,7 @@
 <?php
 /**
  * Drive Players - Google Drive Video Player
- * Version: 2.3.5
+ * Version: 2.4.0
  *
  * A simple video player that loads video list from Google Drive folder
  * Uses Google Drive API v3 with API Key (no OAuth login required)
@@ -9,11 +9,12 @@
  * Video playback powered by Plyr.io
  */
 
-define('APP_VERSION', '2.3.5');
+define('APP_VERSION', '2.4.0');
 
 session_start();
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/drive-api.php';
+require_once __DIR__ . '/history.php';
 
 // -------------------------------------------------------
 // Handle POST: new drive URL submitted
@@ -69,6 +70,15 @@ if (isset($_GET['folder']) && !empty($_GET['folder'])) {
 // -------------------------------------------------------
 if (isset($_GET['clear'])) {
     session_destroy();
+    header('Location: index.php');
+    exit;
+}
+
+// -------------------------------------------------------
+// Clear watch history
+// -------------------------------------------------------
+if (isset($_GET['clear_history'])) {
+    clearHistory();
     header('Location: index.php');
     exit;
 }
@@ -132,6 +142,16 @@ if (!$currentVideo && !empty($videos)) {
 
 // Current folder label
 $currentFolderName = !empty($breadcrumb) ? end($breadcrumb)['name'] : 'Drive Players';
+
+// -------------------------------------------------------
+// Save watch history for current video
+// -------------------------------------------------------
+if ($folderId && $currentVideo) {
+    saveHistory($currentVideo, $folderId, $currentFolderName);
+}
+
+// Load history for landing page
+$watchHistory = (!$folderId) ? loadHistory() : [];
 
 // -------------------------------------------------------
 // Helper functions
@@ -199,13 +219,6 @@ function saveCache($cacheFile, $data) {
     <!-- ===== HEADER (only shown inside folders) ===== -->
     <header class="header" id="main-header">
         <div class="header-left">
-            <button class="menu-toggle" id="menu-toggle" aria-label="Toggle sidebar">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </button>
             <a href="index.php?clear=1" class="logo" id="logo-link">
                 <div class="logo-icon">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
@@ -331,6 +344,44 @@ function saveCache($cacheFile, $data) {
                         </div>
                     </div>
                 </div>
+
+                <?php if (!empty($watchHistory)): ?>
+                <!-- ===== WATCH HISTORY ===== -->
+                <div class="history-section" id="history-section">
+                    <div class="history-header">
+                        <div class="history-title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            Xem gần đây
+                        </div>
+                        <a href="index.php?clear_history=1" class="history-clear" title="Xoá lịch sử"
+                           onclick="return confirm('Xoá toàn bộ lịch sử xem?')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4h6v2"></path></svg>
+                            Xoá lịch sử
+                        </a>
+                    </div>
+                    <div class="history-list" id="history-list">
+                        <?php foreach (array_slice($watchHistory, 0, 12) as $hi => $hitem): ?>
+                        <a href="index.php?v=<?php echo urlencode($hitem['video_id']); ?>"
+                           class="history-item" id="history-item-<?php echo $hi; ?>"
+                           onclick="setFolderBeforeHistory('<?php echo htmlspecialchars($hitem['folder_id']); ?>', '<?php echo htmlspecialchars(addslashes($hitem['folder_name'])); ?>')"
+                        >
+                            <div class="history-item-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            </div>
+                            <div class="history-item-info">
+                                <span class="history-item-name"><?php echo htmlspecialchars(pathinfo($hitem['video_name'], PATHINFO_FILENAME)); ?></span>
+                                <span class="history-item-meta">
+                                    <?php if ($hitem['duration']): ?><span><?php echo $hitem['duration']; ?></span><?php endif; ?>
+                                    <?php if ($hitem['resolution']): ?><span class="hi-res"><?php echo $hitem['resolution']; ?></span><?php endif; ?>
+                                    <span class="hi-folder">📁 <?php echo htmlspecialchars($hitem['folder_name']); ?></span>
+                                    <span class="hi-time"><?php echo timeAgo($hitem['time']); ?></span>
+                                </span>
+                            </div>
+                        </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </section>
 
@@ -444,9 +495,7 @@ function saveCache($cacheFile, $data) {
                 <?php endif; ?>
             </div>
 
-            <!-- ========================================================= -->
-            <!-- SIDEBAR                                                    -->
-            <!-- ========================================================= -->
+            <!-- SIDEBAR -->
             <aside class="sidebar" id="sidebar">
                 <!-- Sidebar header -->
                 <div class="sidebar-header">
@@ -478,6 +527,12 @@ function saveCache($cacheFile, $data) {
                             ?>
                         </span>
                     </div>
+                    <!-- Nút đóng/mở sidebar -->
+                    <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Đóng danh sách (b)" aria-label="Đóng danh sách">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
                 </div>
 
                 <!-- Filter -->
@@ -562,6 +617,11 @@ function saveCache($cacheFile, $data) {
                                 <?php endif; ?>
                                 <?php if ($video['size']): ?>
                                 <span class="item-size"><?php echo $video['size']; ?></span>
+                                <?php endif; ?>
+                                <?php if ($video['modifiedTime']): ?>
+                                <span class="item-date">
+                                    <?php echo date('d/m/Y', strtotime($video['modifiedTime'])); ?>
+                                </span>
                                 <?php endif; ?>
                             </div>
                         </div>

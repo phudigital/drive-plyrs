@@ -1,6 +1,6 @@
 /* ==========================================================================
    Drive Players - CSS Design System
-   Version: 2.3.0
+   Version: 2.4.0
    ========================================================================== */
 
 /* ---------- CSS Variables / Design Tokens ---------- */
@@ -454,6 +454,134 @@ body.sidebar-is-closed #menu-toggle {
     font-size: 13px;
     color: var(--text-secondary);
     line-height: 1.4;
+}
+
+/* ---------- Watch History Section (Landing) ---------- */
+.history-section {
+    width: 100%;
+    max-width: 600px;
+    margin-top: 36px;
+    text-align: left;
+}
+
+.history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.history-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.history-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--bg-tertiary);
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.history-clear:hover {
+    color: var(--accent);
+    background: rgba(255, 68, 68, 0.1);
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    transition: background var(--transition-fast);
+    border-left: 3px solid transparent;
+}
+
+.history-item:hover {
+    background: var(--bg-hover);
+    border-left-color: var(--accent);
+}
+
+.history-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(255, 68, 68, 0.12);
+    color: var(--accent);
+}
+
+.history-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.history-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-item-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.hi-res {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    padding: 1px 4px;
+    border: 1px solid rgba(255,68,68,0.3);
+    border-radius: 3px;
+}
+
+.hi-folder {
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+.hi-time {
+    color: var(--text-muted);
+    opacity: 0.7;
+    margin-left: auto;
+    white-space: nowrap;
+    font-size: 11px;
 }
 
 /* ---------- Error Section ---------- */
@@ -997,6 +1125,32 @@ body.sidebar-is-closed #menu-toggle {
     padding: 4px 10px;
     background: var(--bg-tertiary);
     border-radius: 12px;
+    flex-shrink: 0;
+}
+
+/* ---------- Sidebar Toggle Button ---------- */
+.sidebar-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    margin-left: 4px;
+    transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-normal);
+}
+
+.sidebar-toggle-btn:hover {
+    background: var(--accent);
+    color: #fff;
+}
+
+/* Rotate arrow when sidebar is closed */
+.sidebar-closed .sidebar-toggle-btn svg {
+    transform: rotate(180deg);
 }
 
 /* ---------- Sidebar Search ---------- */
@@ -1197,6 +1351,13 @@ body.sidebar-is-closed #menu-toggle {
 .item-size {
     font-size: 11px;
     color: var(--text-muted);
+}
+
+.item-date {
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0.8;
+    margin-left: auto;
 }
 
 /* ---------- Thumb Duration ---------- */
