@@ -167,9 +167,26 @@ function saveCache($cacheFile, $data) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $currentVideo ? htmlspecialchars(pathinfo($currentVideo['name'], PATHINFO_FILENAME)) . ' - ' : ''; ?>Drive Players</title>
-    <meta name="description" content="Trình xem video từ Google Drive - Giao diện YouTube-like">
-    <meta name="robots" content="noindex, nofollow">
+    <title><?php echo $currentVideo ? htmlspecialchars(pathinfo($currentVideo['name'], PATHINFO_FILENAME)) . ' - ' : ''; ?>DrivePlayers - Xem video Google Drive không giới hạn</title>
+    <meta name="description" content="DrivePlayers là trình phát video mã nguồn mở, hỗ trợ xem trực tiếp video từ Google Drive với giao diện chuyên nghiệp, tốc độ cao, hỗ trợ phụ đề, picture-in-picture và shortcut bàn phím.">
+    <meta name="keywords" content="từ khoá Google Drive Player, video player Google Drive, trình xem video Drive, Plyr Google Drive, API Drive Video">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://drive-player.example.com">
+    <meta property="og:title" content="<?php echo $currentVideo ? htmlspecialchars(pathinfo($currentVideo['name'], PATHINFO_FILENAME)) . ' - ' : ''; ?>DrivePlayers - Xem video Google Drive cực mượt">
+    <meta property="og:description" content="Trình phát video mượt mà, hỗ trợ giao diện bóng bẩy như YouTube dành riêng cho thư mục Google Drive của bạn.">
+    <meta property="og:image" content="og-image.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="DrivePlayers - Xem video Google Drive cực mượt">
+    <meta property="twitter:description" content="Trình phát video mượt mà, hỗ trợ giao diện bóng bẩy như YouTube dành riêng cho thư mục Google Drive của bạn.">
+    <meta property="twitter:image" content="og-image.png">
+
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
