@@ -9,7 +9,7 @@
  * Video playback powered by Plyr.io
  */
 
-define('APP_VERSION', '2.0.0');
+define('APP_VERSION', '2.1.0');
 
 session_start();
 require_once __DIR__ . '/config.php';
