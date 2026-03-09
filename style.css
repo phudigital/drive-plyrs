@@ -599,8 +599,10 @@ body.sidebar-is-closed #menu-toggle {
     transition: transform 0.2s ease, box-shadow 0.2s ease !important;
 }
 
-.plyr__control--overlaid:hover {
-    transform: scale(1.1) !important;
+/* Must include translate(-50%, -50%) to keep it centered when scaling */
+.plyr__control--overlaid:hover,
+.plyr__control--overlaid:focus {
+    transform: translate(-50%, -50%) scale(1.1) !important;
     box-shadow: 0 6px 30px rgba(255, 68, 68, 0.6) !important;
 }
 
