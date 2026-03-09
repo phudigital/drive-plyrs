@@ -1,6 +1,6 @@
 /* ==========================================================================
    Drive Players - CSS Design System
-   Version: 2.0.0
+   Version: 2.3.0
    ========================================================================== */
 
 /* ---------- CSS Variables / Design Tokens ---------- */
@@ -1365,18 +1365,25 @@ body.sidebar-is-closed #menu-toggle {
     }
 }
 
+/* ==================== Tablet (≤ 1024px) ==================== */
 @media (max-width: 1024px) {
     .player-layout {
         flex-direction: column;
-        padding: 16px;
+        padding: 0;
+        gap: 0;
+    }
+
+    .player-main {
+        width: 100%;
     }
 
     .sidebar {
         width: 100%;
         margin-left: 0;
-        margin-top: 24px;
+        margin-top: 0;
         position: static;
-        max-height: 500px;
+        max-height: 50vh;
+        border-radius: 0;
         /* Mobile collapse: height-based instead of width-based */
         transition:
             max-height var(--transition-slow),
@@ -1384,9 +1391,13 @@ body.sidebar-is-closed #menu-toggle {
             margin-top var(--transition-slow);
     }
 
+    .sidebar-header {
+        border-radius: 0;
+    }
+
     /* On mobile: collapse by height, not width */
     .player-layout.sidebar-closed .sidebar {
-        width: 100%;          /* override the desktop width:0 */
+        width: 100%;
         margin-left: 0;
         max-height: 0;
         margin-top: 0;
@@ -1398,66 +1409,113 @@ body.sidebar-is-closed #menu-toggle {
         width: 140px;
         height: 79px;
     }
+
+    /* No border-radius on video for seamless look */
+    .video-container {
+        border-radius: 0;
+    }
+
+    .video-container .plyr,
+    .video-container .plyr video {
+        border-radius: 0;
+    }
+
+    /* Video info padding */
+    .video-info {
+        padding: 12px 16px;
+    }
+
+    /* Breadcrumb inside padding */
+    .breadcrumb {
+        padding: 8px 16px;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .breadcrumb::-webkit-scrollbar {
+        display: none;
+    }
 }
 
+/* ==================== Phone (≤ 768px) ==================== */
 @media (max-width: 768px) {
+    :root {
+        --header-height: 48px;
+    }
+
     .header {
         padding: 0 8px;
-        gap: 8px;
+        gap: 6px;
+        height: var(--header-height);
     }
 
     .logo-text {
         display: none;
     }
 
+    .logo-version {
+        display: none;
+    }
+
+    .logo-icon svg {
+        width: 22px;
+        height: 22px;
+    }
+
+    .menu-toggle {
+        width: 36px;
+        height: 36px;
+    }
+
     .search-bar {
         max-width: none;
+    }
+
+    .search-input {
+        height: 36px;
+        font-size: 13px;
+        padding: 0 12px;
+    }
+
+    .search-btn {
+        width: 44px;
+        height: 36px;
     }
 
     .video-count {
         display: none;
     }
 
+    /* --- Player layout --- */
     .player-layout {
-        padding: 8px;
+        padding: 0;
     }
 
-    .video-container {
-        border-radius: 0;
-    }
-
+    /* --- Video title & info --- */
     .video-title {
-        font-size: 16px;
+        font-size: 15px;
+        margin-bottom: 10px;
     }
 
-    .landing-title {
-        font-size: 32px;
+    .video-info {
+        padding: 10px 12px;
     }
 
-    .landing-input-group {
-        flex-direction: column;
-    }
-
-    .landing-submit {
-        width: 100%;
-        justify-content: center;
-    }
-
-    .landing-hints {
-        grid-template-columns: 1fr;
-    }
-
-    .sidebar {
-        max-height: 400px;
-    }
-
-    .video-item-thumb {
-        width: 120px;
-        height: 68px;
-    }
-
-    .video-actions {
+    .video-meta {
+        margin-bottom: 10px;
         gap: 6px;
+    }
+
+    .meta-badge {
+        padding: 3px 8px;
+        font-size: 11px;
+    }
+
+    /* --- Action buttons: icon-only circles --- */
+    .video-actions {
+        gap: 8px;
     }
 
     .btn-action span {
@@ -1467,20 +1525,305 @@ body.sidebar-is-closed #menu-toggle {
     .btn-action {
         padding: 10px;
         border-radius: 50%;
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* --- Sidebar --- */
+    .sidebar {
+        max-height: 45vh;
+    }
+
+    .sidebar-header {
+        padding: 10px 12px;
+        min-height: 48px;
+    }
+
+    .sidebar-title {
+        font-size: 13px;
+    }
+
+    .sidebar-folder-name {
+        max-width: 120px;
+    }
+
+    .sidebar-count {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+
+    .sidebar-search {
+        padding: 6px 10px;
+    }
+
+    .filter-input {
+        height: 34px;
+        font-size: 12px;
+    }
+
+    /* --- Video list items: compact --- */
+    .video-item {
+        padding: 6px 8px;
+        gap: 8px;
+        margin: 0 2px;
+    }
+
+    .video-item-thumb {
+        width: 110px;
+        height: 62px;
+        border-radius: 6px;
+    }
+
+    .video-item-title {
+        font-size: 12px;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        margin-bottom: 4px;
+    }
+
+    .video-item-meta {
+        gap: 6px;
+    }
+
+    .item-resolution {
+        font-size: 9px;
+        padding: 1px 4px;
+    }
+
+    .item-size {
+        font-size: 10px;
+    }
+
+    .thumb-duration {
+        font-size: 10px;
+        padding: 1px 4px;
+    }
+
+    /* --- Folder items compact --- */
+    .folder-item {
+        padding: 8px 10px;
+        margin: 0 2px;
+    }
+
+    .folder-item-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .folder-item-icon svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .folder-item-name {
+        font-size: 12px;
+    }
+
+    /* --- Breadcrumb --- */
+    .breadcrumb {
+        padding: 6px 12px;
+        font-size: 12px;
+        gap: 1px;
+    }
+
+    .bc-home {
+        width: 26px;
+        height: 26px;
+    }
+
+    .bc-link,
+    .bc-current {
+        padding: 3px 6px;
+        font-size: 12px;
+        max-width: 140px;
+    }
+
+    /* --- Landing page --- */
+    .landing {
+        padding: 24px 16px;
+        min-height: calc(100vh - var(--header-height));
+    }
+
+    .landing-icon svg {
+        width: 56px;
+        height: 56px;
+    }
+
+    .landing-title {
+        font-size: 30px;
+        letter-spacing: -1.5px;
+    }
+
+    .landing-subtitle {
+        font-size: 14px;
+        margin-bottom: 28px;
+    }
+
+    .landing-version {
+        font-size: 11px;
+        margin-bottom: 8px;
+    }
+
+    .landing-input-group {
+        flex-direction: column;
+    }
+
+    .landing-input {
+        height: 48px;
+        font-size: 14px;
+    }
+
+    .landing-submit {
+        width: 100%;
+        height: 48px;
+        justify-content: center;
+    }
+
+    .landing-form {
+        margin-bottom: 32px;
+    }
+
+    .landing-hints {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .hint-card {
+        flex-direction: row;
+        padding: 14px 16px;
+        text-align: left;
+    }
+
+    .hint-icon {
+        font-size: 24px;
+    }
+
+    .hint-text {
+        text-align: left;
+    }
+
+    /* --- Toast on mobile --- */
+    .toast {
+        left: 12px;
+        right: 12px;
+        bottom: 16px;
+        transform: translateY(80px);
+        text-align: center;
+        font-size: 13px;
+        padding: 10px 16px;
+    }
+
+    .toast.show {
+        transform: translateY(0);
+    }
+
+    /* --- API key notice --- */
+    .api-key-notice {
+        padding: 12px 14px;
+        gap: 10px;
+    }
+
+    .notice-icon {
+        font-size: 20px;
+    }
+
+    .notice-content strong {
+        font-size: 13px;
+    }
+
+    .notice-content p {
+        font-size: 12px;
+    }
+
+    /* Plyr mobile tweaks */
+    .plyr__control--overlaid {
+        width: 48px !important;
+        height: 48px !important;
     }
 }
 
+/* ==================== Small Phone (≤ 480px) ==================== */
 @media (max-width: 480px) {
     .video-item-index {
         display: none;
     }
 
     .video-item-thumb {
-        width: 100px;
-        height: 56px;
+        width: 90px;
+        height: 51px;
     }
 
     .video-item-title {
-        font-size: 12px;
+        font-size: 11px;
+    }
+
+    .video-item-meta {
+        margin-top: 2px;
+    }
+
+    .video-title {
+        font-size: 14px;
+    }
+
+    .sidebar {
+        max-height: 40vh;
+    }
+
+    .breadcrumb {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+
+    .bc-link,
+    .bc-current {
+        max-width: 100px;
+    }
+}
+
+/* ==================== Landscape Phone ==================== */
+@media (max-height: 500px) and (orientation: landscape) {
+    :root {
+        --header-height: 40px;
+    }
+
+    .header {
+        height: var(--header-height);
+    }
+
+    .player-layout {
+        flex-direction: row;
+        padding: 0;
+    }
+
+    .player-main {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .sidebar {
+        width: 280px;
+        max-height: calc(100vh - var(--header-height));
+        margin: 0;
+        position: static;
+    }
+
+    .video-container {
+        border-radius: 0;
+    }
+
+    .video-container .plyr,
+    .video-container .plyr video {
+        border-radius: 0;
+    }
+
+    .video-info {
+        display: none;
+    }
+
+    .breadcrumb {
+        display: none;
     }
 }
