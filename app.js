@@ -1,6 +1,6 @@
 /**
  * Drive Players - JavaScript
- * Version: 2.7.9
+ * Version: 2.8.1
  * Video playback powered by Plyr.io
  */
 
@@ -54,7 +54,7 @@ function initPlyrPlayer() {
         settings: ['quality', 'speed', 'loop'],
         speed: {
             selected: 1,
-            options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2],
+            options: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4],
         },
         keyboard: {
             focused: true,
@@ -358,7 +358,31 @@ function playBlobVideo(blob, container, fileId) {
         const proxyVideo = document.getElementById('plyr-player-proxy');
         if (proxyVideo && window.Plyr) {
             plyrInstance = new Plyr(proxyVideo, {
-                controls: ['play-large','play','progress','current-time','duration','mute','volume','fullscreen'],
+                controls: [
+                    'play-large',   
+                    'restart',      
+                    'rewind',       
+                    'play',         
+                    'fast-forward', 
+                    'progress',     
+                    'current-time', 
+                    'duration',     
+                    'mute',         
+                    'volume',       
+                    'settings',     
+                    'pip',          
+                    'airplay',      
+                    'fullscreen',   
+                ],
+                settings: ['speed', 'loop'],
+                speed: {
+                    selected: 1,
+                    options: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4],
+                },
+                keyboard: {
+                    focused: true,
+                    global: true,
+                },
             });
         }
     } catch (e) {}
@@ -508,6 +532,30 @@ function initKeyboardShortcuts() {
             e.preventDefault();
             const input = document.getElementById('filter-input') || document.getElementById('landing-drive-input');
             if (input) input.focus();
+        }
+
+        // '>' (Shift + .) — increase speed
+        if (e.key === '>') {
+            if (plyrInstance) {
+                const nextOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4];
+                const currentIndex = nextOptions.indexOf(plyrInstance.speed);
+                if (currentIndex !== -1 && currentIndex < nextOptions.length - 1) {
+                    plyrInstance.speed = nextOptions[currentIndex + 1];
+                    showToast(`Tốc độ: ${plyrInstance.speed}x`);
+                }
+            }
+        }
+
+        // '<' (Shift + ,) — decrease speed
+        if (e.key === '<') {
+            if (plyrInstance) {
+                const nextOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4];
+                const currentIndex = nextOptions.indexOf(plyrInstance.speed);
+                if (currentIndex !== -1 && currentIndex > 0) {
+                    plyrInstance.speed = nextOptions[currentIndex - 1];
+                    showToast(`Tốc độ: ${plyrInstance.speed}x`);
+                }
+            }
         }
 
         // 'b' — toggle sidebar
