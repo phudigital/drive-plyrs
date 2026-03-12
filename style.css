@@ -266,6 +266,7 @@ body.sidebar-is-closed #menu-toggle {
 .main-content {
     padding-top: var(--header-height);
     min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Landing page: no header, no top padding */
@@ -980,6 +981,29 @@ body.sidebar-is-closed #menu-toggle {
     white-space: nowrap;
 }
 
+/* Subfolder segment in breadcrumb (visual only, no link) */
+.bc-subfolder {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.25);
+    color: #ff8a8a;
+    font-weight: 600;
+    font-size: 13px;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bc-subfolder svg {
+    flex-shrink: 0;
+    opacity: 0.8;
+}
+
 /* ---------- Folder-only placeholder ---------- */
 .folder-only-placeholder {
     position: absolute;   /* fills the aspect-ratio .video-container */
@@ -1003,33 +1027,60 @@ body.sidebar-is-closed #menu-toggle {
     line-height: 1.6;
 }
 
-/* ---------- Folder items in sidebar ---------- */
-.folder-item {
+/* ---------- Collapsible Folder Groups in Sidebar ---------- */
+.collapse-folder {
+    margin: 2px 4px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: background var(--transition-fast);
+}
+
+.collapse-folder + .collapse-folder {
+    margin-top: 2px;
+}
+
+/* Folder header button */
+.collapse-folder-header {
     display: flex;
     align-items: center;
     gap: 10px;
+    width: 100%;
     padding: 10px 12px;
-    margin: 0 4px;
+    background: transparent;
+    border: none;
     border-radius: var(--radius-sm);
     cursor: pointer;
     transition: background var(--transition-fast);
-    border-bottom: 1px solid transparent;
+    text-align: left;
+    color: inherit;
+    font-family: inherit;
 }
 
-.folder-item:hover {
+.collapse-folder-header:hover {
     background: var(--bg-hover);
 }
 
-.folder-item-icon {
+.collapse-folder.open > .collapse-folder-header {
+    background: rgba(255, 107, 107, 0.06);
+}
+
+.collapse-folder-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
+    border-radius: 8px;
+    background: rgba(255, 107, 107, 0.08);
+    transition: background var(--transition-fast);
 }
 
-.folder-item-info {
+.collapse-folder.open > .collapse-folder-header .collapse-folder-icon {
+    background: rgba(255, 107, 107, 0.15);
+}
+
+.collapse-folder-info {
     flex: 1;
     min-width: 0;
     display: flex;
@@ -1037,31 +1088,103 @@ body.sidebar-is-closed #menu-toggle {
     gap: 2px;
 }
 
-.folder-item-name {
+.collapse-folder-name {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.folder-item-type {
+.collapse-folder-count {
     font-size: 11px;
     color: var(--text-muted);
+    font-weight: 400;
 }
 
-.folder-item-arrow {
+/* Chevron (rotates on open) */
+.collapse-folder-chevron {
     display: flex;
     align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
     color: var(--text-muted);
-    opacity: 0;
-    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color var(--transition-fast);
 }
 
-.folder-item:hover .folder-item-arrow {
+.collapse-folder.open > .collapse-folder-header .collapse-folder-chevron {
+    transform: rotate(180deg);
+    color: var(--accent);
+}
+
+/* Collapsible body - uses grid trick for smooth animation */
+.collapse-folder-body {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collapse-folder.open > .collapse-folder-body {
+    grid-template-rows: 1fr;
+}
+
+/* Inner wrapper - the ONLY direct child, overflow:hidden is required */
+.collapse-folder-inner {
+    overflow: hidden;
+    border-left: 2px solid rgba(255, 107, 107, 0.2);
+    margin-left: 16px;
+    border-radius: 0 0 0 4px;
+}
+
+/* Fade in when open */
+.collapse-folder-body .collapse-folder-inner {
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.25s ease 0.05s, transform 0.25s ease 0.05s;
+}
+
+.collapse-folder.open > .collapse-folder-body .collapse-folder-inner {
     opacity: 1;
-    transform: translateX(2px);
+    transform: translateY(0);
+}
+
+/* Inner wrapper for videos */
+.collapse-folder-inner .video-item {
+    padding-left: 16px;
+    margin: 0 4px 0 0;
+    border-left: none;
+    border-radius: var(--radius-sm);
+}
+
+.collapse-folder-inner .video-item.active {
+    background: var(--bg-active);
+    position: relative;
+}
+
+.collapse-folder-inner .video-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
+}
+
+.collapse-folder-inner .video-item:last-child {
+    margin-bottom: 4px;
+}
+
+/* Empty subfolder state */
+.collapse-folder-empty {
+    padding: 10px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
 }
 
 /* ---------- List Divider ---------- */
@@ -1917,24 +2040,36 @@ body.sidebar-is-closed #menu-toggle {
         padding: 1px 4px;
     }
 
-    /* --- Folder items compact --- */
-    .folder-item {
+    /* --- Collapsible folder items compact --- */
+    .collapse-folder {
+        margin: 1px 2px;
+    }
+
+    .collapse-folder-header {
         padding: 8px 10px;
-        margin: 0 2px;
+        gap: 8px;
     }
 
-    .folder-item-icon {
-        width: 30px;
-        height: 30px;
+    .collapse-folder-icon {
+        width: 28px;
+        height: 28px;
     }
 
-    .folder-item-icon svg {
-        width: 18px;
-        height: 18px;
+    .collapse-folder-icon svg {
+        width: 16px;
+        height: 16px;
     }
 
-    .folder-item-name {
+    .collapse-folder-name {
         font-size: 12px;
+    }
+
+    .collapse-folder-count {
+        font-size: 10px;
+    }
+
+    .collapse-folder-inner .video-item {
+        padding-left: 10px;
     }
 
     /* --- Breadcrumb --- */
@@ -2141,4 +2276,70 @@ body.sidebar-is-closed #menu-toggle {
     .breadcrumb {
         display: none;
     }
+}
+
+/* =========================================================================
+   Cache Download Fallback UI
+   ========================================================================= */
+
+.cache-download-ui {
+    width: 100%;
+    aspect-ratio: 16/9;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-color);
+    padding: 2rem;
+    text-align: center;
+}
+
+.cache-dl-icon {
+    width: 48px;
+    height: 48px;
+    color: var(--accent-light);
+    margin-bottom: 1rem;
+    animation: bounce 2s infinite ease-in-out;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.cache-dl-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.cache-dl-desc {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.cache-dl-progress-box {
+    width: 60%;
+    max-width: 400px;
+    height: 6px;
+    background: var(--surface-light, #333);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.cache-dl-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-color, #ff6b6b), var(--accent-light, #ff8e8e));
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.cache-dl-stats {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
 }

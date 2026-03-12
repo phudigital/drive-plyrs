@@ -94,6 +94,7 @@ curl_setopt_array($ch, [
 // Set response headers
 // -------------------------------------------------------
 header('Access-Control-Allow-Origin: *');
+header('Access-Control-Expose-Headers: Content-Length, Content-Type, Content-Range, Accept-Ranges');
 header('Cache-Control: no-store');
 header('X-Proxy: DrivePlayers');
 

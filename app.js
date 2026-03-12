@@ -1,6 +1,6 @@
 /**
  * Drive Players - JavaScript
- * Version: 2.6.0
+ * Version: 2.7.9
  * Video playback powered by Plyr.io
  */
 
@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initFilterSearch();
     initKeyboardShortcuts();
     scrollToActiveVideo();
+    preloadNextVideoIfSmall();
 });
 
 /* ==========================================================================
@@ -127,14 +128,14 @@ function initPlyrPlayer() {
     plyrInstance.on('loadeddata', cancelFallbackTimer);
     plyrInstance.on('playing', cancelFallbackTimer);
 
-    // --- Timeout → auto iframe fallback ---
+    // --- Timeout fallback: 5s — nếu không load được, chuyển sang chế độ nhúng ---
     _fallbackTimer = setTimeout(() => {
         const nativeVideo = plyrInstance?.media;
         if (nativeVideo && nativeVideo.readyState < 2 && _fallbackLevel === 0) {
-            console.warn('[DrivePlayers] Timeout — falling back to iframe');
+            console.warn('[DrivePlayers] Timeout 5s — falling back to iframe');
             fallbackToIframe();
         }
-    }, 8000);
+    }, 5000);
 }
 
 /** Fallback helper: extract file ID from current Plyr source URL */
@@ -146,7 +147,9 @@ function getFileIdFromPlayer() {
 }
 
 /**
- * Level 1 → Level 2: Switch to Google Drive embed iframe
+ * Level 1: Switch to Google Drive embed iframe
+ * → Iframe is a reliable fallback that handles auth + CORS natively.
+ * → NO auto-escalation to cache (too slow via VPS). Cache is manual only.
  */
 function fallbackToIframe() {
     if (_fallbackLevel >= 1) return;
@@ -163,6 +166,8 @@ function fallbackToIframe() {
         plyrInstance = null;
     }
 
+    updatePlaybackModeBadge('Chế độ Nhúng', '230, 126, 34');
+
     container.innerHTML = `
         <div style="position:relative;width:100%;aspect-ratio:16/9">
             <iframe
@@ -175,11 +180,7 @@ function fallbackToIframe() {
             ></iframe>
         </div>
         <div class="fallback-notice" id="fallback-notice">
-            <span>⚠️ Đang dùng chế độ nhúng. Video không load?</span>
-            <button class="btn-try-proxy" id="btn-try-proxy" onclick="fallbackToProxy()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                Thử Proxy
-            </button>
+            <span>⚠️ Chế độ nhúng (Drive Embed).</span>
             <a class="btn-open-drive" href="https://drive.google.com/file/d/${fileId}/view" target="_blank" rel="noopener">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
                 Mở Google Drive
@@ -187,22 +188,156 @@ function fallbackToIframe() {
         </div>
     `;
 
-    showToast('⚠️ Đã chuyển sang chế độ nhúng (embedded)');
+    showToast('⚠️ Chuyển sang chế độ nhúng Google Drive');
 }
 
 /**
- * Level 2 → Level 3: Proxy stream through our PHP server
+ * Level 2 → Level 3: Download proxy stream to Browser Cache / RAM then play
  */
-function fallbackToProxy() {
+async function fallbackToProxy() {
     if (_fallbackLevel >= 2) return;
     _fallbackLevel = 2;
+
+    if (_fallbackTimer) {
+        clearInterval(_fallbackTimer);
+        _fallbackTimer = null;
+    }
 
     const fileId = _currentFileId;
     const container = document.getElementById('video-container');
     if (!container || !fileId) return;
 
+    updatePlaybackModeBadge('Tải Cache...', '52, 152, 219');
+
     const proxyUrl = `proxy.php?id=${encodeURIComponent(fileId)}`;
 
+    // Initial Loading UI
+    container.innerHTML = `
+        <div class="cache-download-ui" id="cache-dl-ui">
+            <svg class="cache-dl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            <div class="cache-dl-title">Đang tải video vào Cache...</div>
+            <div class="cache-dl-desc" id="cache-dl-desc">Đang kết nối tốc độ cao từ Google CDN...</div>
+            
+            <div class="cache-dl-progress-box">
+                <div class="cache-dl-progress-bar" id="cache-dl-bar"></div>
+            </div>
+            
+            <div class="cache-dl-stats">
+                <span id="cache-dl-percent">0%</span> • 
+                <span id="cache-dl-loaded">0.0 MB</span> / <span id="cache-dl-total">??? MB</span>
+            </div>
+        </div>
+    `;
+
+    // Try fetching directly from Google Drive CDN first (much faster, bypasses VPS bottleneck)
+    // Fall back to proxy.php only if CORS blocks the direct request
+    const currentVideoEl = document.getElementById('plyr-player');
+    const currentSrc = (currentVideoEl?.querySelector?.('source') || currentVideoEl)?.getAttribute?.('src') || '';
+    const keyMatch = currentSrc.match(/key=([^&]+)/);
+    const apiKey = keyMatch ? decodeURIComponent(keyMatch[1]) : '';
+
+    const directUrl = apiKey
+        ? `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&key=${encodeURIComponent(apiKey)}`
+        : null;
+
+    let fetchUrl = proxyUrl;
+    let usingDirect = false;
+
+    if (directUrl) {
+        try {
+            // HEAD request to test CORS + reachability without downloading data
+            const test = await fetch(directUrl, { method: 'HEAD', mode: 'cors' });
+            if (test.ok || test.status === 206) {
+                fetchUrl = directUrl;
+                usingDirect = true;
+                console.log('[DrivePlayers] Cache: dùng Google Drive CDN trực tiếp (tốc độ cao)');
+                const desc = document.getElementById('cache-dl-desc');
+                if (desc) desc.textContent = '⚡ Đang tải từ Google CDN (tốc độ tối đa)...';
+            }
+        } catch (corsErr) {
+            console.warn('[DrivePlayers] Cache: Google CDN bị CORS, chuyển sang proxy.php');
+            const desc = document.getElementById('cache-dl-desc');
+            if (desc) desc.textContent = '🔄 Chuyển sang proxy server...';
+        }
+    }
+
+    try {
+        const response = await fetch(fetchUrl, usingDirect ? { mode: 'cors' } : {});
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const contentLength = response.headers.get('content-length');
+        if (!contentLength) {
+            const blob = await response.blob();
+            playBlobVideo(blob, container, fileId);
+            return;
+        }
+
+        const totalBytes = parseInt(contentLength, 10);
+        let loadedBytes = 0;
+
+        const reader = response.body.getReader();
+        const chunks = [];
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            chunks.push(value);
+            loadedBytes += value.length;
+
+            const percent = Math.round((loadedBytes / totalBytes) * 100);
+            
+            // Update UI
+            const bar = document.getElementById('cache-dl-bar');
+            const pct = document.getElementById('cache-dl-percent');
+            const ld  = document.getElementById('cache-dl-loaded');
+            const tot = document.getElementById('cache-dl-total');
+            
+            if (bar) bar.style.width = percent + '%';
+            if (pct) pct.textContent = percent + '%';
+            if (ld)  ld.textContent  = (loadedBytes / 1048576).toFixed(1) + ' MB';
+            if (tot) tot.textContent = (totalBytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        const blob = new Blob(chunks, { type: 'video/mp4' });
+        playBlobVideo(blob, container, fileId);
+
+    } catch (error) {
+        // If direct URL failed mid-download, try proxy as last resort
+        if (usingDirect) {
+            console.warn('[DrivePlayers] Cache direct failed mid-download, retrying via proxy...');
+            usingDirect = false;
+            fetchUrl = proxyUrl;
+            const desc = document.getElementById('cache-dl-desc');
+            if (desc) desc.textContent = '🔄 Thử lại qua proxy server...';
+            try {
+                const r2 = await fetch(proxyUrl);
+                if (!r2.ok) throw new Error(`Proxy HTTP ${r2.status}`);
+                const blob = await r2.blob();
+                playBlobVideo(blob, container, fileId);
+                return;
+            } catch (e2) {
+                console.error('Cache download failed even with proxy retry:', e2);
+            }
+        }
+        console.error('Cache download failed:', error);
+        container.innerHTML = `
+            <div class="fallback-notice">
+                <span>❌ Lỗi tải cache: ${error.message}</span>
+                <a class="btn-open-drive" href="https://drive.google.com/file/d/${fileId}/view" target="_blank" rel="noopener">Mở Drive</a>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Initialize player from a Blob object
+ */
+function playBlobVideo(blob, container, fileId) {
+    const objectUrl = URL.createObjectURL(blob);
+    
     container.innerHTML = `
         <video
             id="plyr-player-proxy"
@@ -210,22 +345,15 @@ function fallbackToProxy() {
             playsinline
             style="width:100%;aspect-ratio:16/9;background:#000;display:block"
         >
-            <source src="${proxyUrl}" type="video/mp4">
+            <source src="${objectUrl}" type="video/mp4">
         </video>
         <div class="fallback-notice" id="fallback-notice">
-            <span>🔄 Đang dùng proxy stream. Nếu vẫn lỗi:</span>
-            <a class="btn-open-drive" href="https://drive.google.com/file/d/${fileId}/view" target="_blank" rel="noopener">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
-                Mở trong Google Drive
-            </a>
-            <a class="btn-open-drive" href="proxy.php?id=${encodeURIComponent(fileId)}" download>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                Tải xuống
-            </a>
+            <span>⚡ Đang phát siêu tốc từ bộ nhớ Cache cục bộ.</span>
         </div>
     `;
 
-    // Try to init Plyr on the proxy video
+    updatePlaybackModeBadge('Phát từ Cache', '155, 89, 182');
+
     try {
         const proxyVideo = document.getElementById('plyr-player-proxy');
         if (proxyVideo && window.Plyr) {
@@ -235,7 +363,7 @@ function fallbackToProxy() {
         }
     } catch (e) {}
 
-    showToast('🔄 Đang stream qua proxy server...');
+    showToast('⚡ Phát từ Local Cache thành công!');
 }
 
 /* ==========================================================================
@@ -303,19 +431,49 @@ function initFilterSearch() {
 
     filterInput.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
-        const items = document.querySelectorAll('.video-item, .folder-item');
         const divider = document.getElementById('list-divider');
 
-        let visibleVideos   = 0;
-        let visibleFolders  = 0;
+        let visibleVideos  = 0;
+        let visibleFolders = 0;
 
-        items.forEach((item) => {
-            const name    = item.dataset.videoName || '';
+        // Handle root-level video items (not inside collapse-folder)
+        document.querySelectorAll('#video-list > .video-item').forEach((item) => {
+            const name = item.dataset.videoName || '';
             const matches = !query || name.includes(query);
             item.style.display = matches ? '' : 'none';
-            if (matches) {
-                item.classList.contains('folder-item') ? visibleFolders++ : visibleVideos++;
+            if (matches) visibleVideos++;
+        });
+
+        // Handle collapsible folder groups
+        document.querySelectorAll('.collapse-folder').forEach((folder) => {
+            const folderName = folder.dataset.videoName || '';
+            const folderMatches = !query || folderName.includes(query);
+
+            // Check videos inside the folder
+            const innerVideos = folder.querySelectorAll('.video-item');
+            let anyVideoMatch = false;
+            innerVideos.forEach((item) => {
+                const name = item.dataset.videoName || '';
+                const matches = !query || name.includes(query);
+                item.style.display = matches ? '' : 'none';
+                if (matches) anyVideoMatch = true;
+            });
+
+            // Show folder if its name matches OR any inner video matches
+            const showFolder = folderMatches || anyVideoMatch;
+            folder.style.display = showFolder ? '' : 'none';
+
+            // If searching by folder name, show all its videos
+            if (folderMatches && query) {
+                innerVideos.forEach((item) => item.style.display = '');
             }
+
+            // Auto-expand when filtering
+            if (query && showFolder) {
+                folder.classList.add('open');
+            }
+
+            if (showFolder) visibleFolders++;
         });
 
         // Hide divider when searching hides one group entirely
@@ -323,6 +481,18 @@ function initFilterSearch() {
             divider.style.display = (visibleFolders === 0 || visibleVideos === 0) ? 'none' : '';
         }
     });
+}
+
+/* ==========================================================================
+   Collapse Folder Toggle
+   ========================================================================== */
+
+function toggleCollapseFolder(headerBtn) {
+    const folder = headerBtn.closest('.collapse-folder');
+    if (!folder) return;
+
+    const isOpen = folder.classList.toggle('open');
+    headerBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 }
 
 /* ==========================================================================
@@ -422,3 +592,69 @@ function isInputFocused() {
     const el = document.activeElement;
     return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
 }
+
+function updatePlaybackModeBadge(modeText, rgbColor) {
+    const badge = document.getElementById('playback-mode-badge');
+    if (!badge) return;
+    badge.textContent = modeText;
+    badge.style.background = `rgba(${rgbColor}, 0.15)`;
+    badge.style.color = `rgb(${rgbColor})`;
+    badge.style.border = `1px solid rgba(${rgbColor}, 0.25)`;
+}
+
+/* ==========================================================================
+   Smart Preload Next Video
+   ========================================================================== */
+
+function preloadNextVideoIfSmall() {
+    // 200MB in bytes = 200 * 1024 * 1024
+    const MAX_PRELOAD_SIZE = 209715200; 
+    
+    // Find the currently active video in the sidebar list
+    const activeItem = document.querySelector('.video-item.active');
+    if (!activeItem) return;
+
+    // Find all video items to locate the next one
+    const allItems = Array.from(document.querySelectorAll('.video-item'));
+    const currentIndex = allItems.indexOf(activeItem);
+    
+    // Check if there is a next video
+    if (currentIndex === -1 || currentIndex >= allItems.length - 1) return;
+    
+    const nextItem = allItems[currentIndex + 1];
+    
+    // Get size and file ID
+    const rawSize = parseInt(nextItem.dataset.rawSize || '0', 10);
+    const nextFileId = nextItem.dataset.videoId;
+    
+    if (!nextFileId) return;
+
+    // Condition: Size > 0 AND Size <= 200MB
+    if (rawSize > 0 && rawSize <= MAX_PRELOAD_SIZE) {
+        console.log(`[DrivePlayers] Preloading next video (Size: ${(rawSize / 1024 / 1024).toFixed(1)} MB)...`);
+        
+        // We use an invisible native <video> tag with preload="auto" to trigger browser caching
+        // Ensure we retrieve the API KEY from the existing source
+        const currentVideoEl = document.getElementById('plyr-player');
+        if (!currentVideoEl) return;
+        
+        const currentSrc = (currentVideoEl.querySelector?.('source') || currentVideoEl).getAttribute?.('src') || '';
+        const match = currentSrc.match(/key=([^&]+)/);
+        const apiKey = match ? match[1] : '';
+        
+        if (!apiKey) return;
+        
+        const preloadUrl = `https://www.googleapis.com/drive/v3/files/${nextFileId}?alt=media&key=${apiKey}`;
+        
+        const preloader = document.createElement('video');
+        preloader.preload = 'auto'; // Try to download metadata and some chunks
+        preloader.muted = true;
+        preloader.style.display = 'none';
+        preloader.src = preloadUrl;
+        
+        document.body.appendChild(preloader);
+    } else {
+        console.log(`[DrivePlayers] Skip preloading next video (Size: ${(rawSize / 1024 / 1024).toFixed(1)} MB - exceeds 200MB limit or unknown)`);
+    }
+}
+

@@ -125,8 +125,10 @@ function fetchVideosFromDriveAPI($folderId) {
             }
             
             $fileSize = '';
+            $rawSize = 0;
             if (isset($file['size'])) {
                 $bytes = intval($file['size']);
+                $rawSize = $bytes;
                 if ($bytes >= 1073741824) {
                     $fileSize = round($bytes / 1073741824, 1) . ' GB';
                 } elseif ($bytes >= 1048576) {
@@ -141,6 +143,7 @@ function fetchVideosFromDriveAPI($folderId) {
                 'name' => $file['name'],
                 'mimeType' => $file['mimeType'],
                 'size' => $fileSize,
+                'rawSize' => $rawSize,
                 'duration' => $duration,
                 'resolution' => $resolution,
                 'thumbnail' => $file['thumbnailLink'] ?? "https://drive.google.com/thumbnail?id=" . $file['id'] . "&sz=w320",

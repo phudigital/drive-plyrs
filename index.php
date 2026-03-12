@@ -1,7 +1,7 @@
 <?php
 /**
  * Drive Players - Google Drive Video Player
- * Version: 2.4.0
+ * Version: 2.7.9
  *
  * A simple video player that loads video list from Google Drive folder
  * Uses Google Drive API v3 with API Key (no OAuth login required)
@@ -9,7 +9,7 @@
  * Video playback powered by Plyr.io
  */
 
-define('APP_VERSION', '2.6.0');
+define('APP_VERSION', '2.7.9');
 
 session_start();
 require_once __DIR__ . '/config.php';
@@ -113,6 +113,7 @@ $breadcrumb  = $_SESSION['breadcrumb']  ?? [];
 $rootId      = $_SESSION['root_folder_id'] ?? $folderId;
 $videos      = [];
 $subfolders  = [];
+$subfolderVideos = []; // videos grouped by subfolder id
 $error       = '';
 $currentVideo = null;
 $hasApiKey   = defined('GOOGLE_API_KEY') && !empty(GOOGLE_API_KEY);
@@ -124,12 +125,26 @@ if ($folderId && $hasApiKey) {
     if ($cached !== false) {
         $videos     = $cached['videos'];
         $subfolders = $cached['subfolders'] ?? [];
+        $subfolderVideos = $cached['subfolder_videos'] ?? [];
     } else {
         $result = fetchVideosFromDriveAPI($folderId);
         if ($result['success']) {
             $videos     = $result['videos'];
             $subfolders = fetchSubfoldersFromDriveAPI($folderId);
-            saveCache($cacheFile, ['videos' => $videos, 'subfolders' => $subfolders]);
+            
+            // Fetch videos from each subfolder for collapsible display
+            foreach ($subfolders as $sf) {
+                $sfResult = fetchVideosFromDriveAPI($sf['id']);
+                if ($sfResult['success'] && !empty($sfResult['videos'])) {
+                    $subfolderVideos[$sf['id']] = $sfResult['videos'];
+                }
+            }
+            
+            saveCache($cacheFile, [
+                'videos' => $videos,
+                'subfolders' => $subfolders,
+                'subfolder_videos' => $subfolderVideos,
+            ]);
         } else {
             $error = $result['error'];
         }
@@ -147,18 +162,45 @@ if ($folderId && $hasApiKey) {
     $error = 'Chưa cấu hình Google API Key. Vui lòng mở file config.php và nhập API Key của bạn.';
 }
 
+// Build a flat list of ALL videos (root + subfolders) for lookup
+$allVideos = $videos;
+foreach ($subfolderVideos as $sfVids) {
+    $allVideos = array_merge($allVideos, $sfVids);
+}
+
 // Select current video
 $currentVideoId = $_GET['v'] ?? null;
 if ($currentVideoId) {
-    foreach ($videos as $v) {
+    foreach ($allVideos as $v) {
         if ($v['id'] === $currentVideoId) {
             $currentVideo = $v;
             break;
         }
     }
 }
+// Default: first video from root, or first video from first subfolder
 if (!$currentVideo && !empty($videos)) {
     $currentVideo = $videos[0];
+}
+if (!$currentVideo && !empty($subfolderVideos)) {
+    $firstSfVideos = reset($subfolderVideos);
+    if (!empty($firstSfVideos)) {
+        $currentVideo = $firstSfVideos[0];
+    }
+}
+
+// Detect which subfolder the current video belongs to (if any)
+$currentVideoSubfolder = null;
+if ($currentVideo) {
+    foreach ($subfolders as $sf) {
+        $sfVids = $subfolderVideos[$sf['id']] ?? [];
+        foreach ($sfVids as $sv) {
+            if ($sv['id'] === $currentVideo['id']) {
+                $currentVideoSubfolder = $sf;
+                break 2;
+            }
+        }
+    }
 }
 
 // Current folder label
@@ -277,13 +319,13 @@ function saveCache($cacheFile, $data) {
         </form>
 
         <div class="header-right">
-            <?php if (!empty($videos) || !empty($subfolders)): ?>
+            <?php if (!empty($allVideos) || !empty($subfolders)): ?>
             <span class="video-count" id="video-count">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
                     <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                <?php echo count($videos); ?> video<?php if (!empty($subfolders)): ?> · <?php echo count($subfolders); ?> thư mục<?php endif; ?>
+                <?php echo count($allVideos); ?> video<?php if (!empty($subfolders)): ?> · <?php echo count($subfolders); ?> thư mục<?php endif; ?>
             </span>
             <?php endif; ?>
         </div>
@@ -429,7 +471,7 @@ function saveCache($cacheFile, $data) {
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
                     </a>
                     <?php foreach ($breadcrumb as $i => $crumb):
-                        $isLast = ($i === count($breadcrumb) - 1);
+                        $isLast = ($i === count($breadcrumb) - 1) && !$currentVideoSubfolder;
                     ?>
                     <span class="bc-sep">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
@@ -442,6 +484,15 @@ function saveCache($cacheFile, $data) {
                         </a>
                     <?php endif; ?>
                     <?php endforeach; ?>
+                    <?php if ($currentVideoSubfolder): ?>
+                    <span class="bc-sep">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </span>
+                    <span class="bc-subfolder">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"></path></svg>
+                        <?php echo htmlspecialchars($currentVideoSubfolder['name']); ?>
+                    </span>
+                    <?php endif; ?>
                 </nav>
                 <?php endif; ?>
 
@@ -460,8 +511,8 @@ function saveCache($cacheFile, $data) {
                             type="<?php echo htmlspecialchars($currentVideo['mimeType']); ?>"
                         />
                     </video>
-                    <?php elseif (empty($videos) && !empty($subfolders)): ?>
-                    <!-- Folder-only view: no videos here -->
+                    <?php elseif (empty($videos) && !empty($subfolders) && empty($subfolderVideos)): ?>
+                    <!-- Folder-only view: no videos anywhere -->
                     <div class="folder-only-placeholder">
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"></path></svg>
                         <p>Thư mục này không chứa video trực tiếp.<br>Chọn thư mục con bên dưới để xem video.</p>
@@ -487,8 +538,13 @@ function saveCache($cacheFile, $data) {
                         <span class="meta-badge size"><?php echo $currentVideo['size']; ?></span>
                         <?php endif; ?>
                         <span class="meta-badge ext"><?php echo strtoupper(pathinfo($currentVideo['name'], PATHINFO_EXTENSION)); ?></span>
+                        <span class="meta-badge playback-mode" id="playback-mode-badge" style="background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.25);">Phát trực tiếp</span>
                     </div>
                     <div class="video-actions">
+                        <button class="btn-action" id="btn-force-cache" onclick="fallbackToProxy()" title="Tải vào bộ nhớ trình duyệt để phát">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+                            <span>Phát qua Cache</span>
+                        </button>
                         <a href="<?php echo $currentVideo['download']; ?>" class="btn-action" id="btn-download" target="_blank" rel="noopener">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                             <span>Tải xuống</span>
@@ -532,7 +588,8 @@ function saveCache($cacheFile, $data) {
                         <span class="sidebar-count">
                             <?php
                                 $parts = [];
-                                if (!empty($videos)) $parts[] = count($videos) . ' video';
+                                $totalVids = count($allVideos);
+                                if ($totalVids > 0) $parts[] = $totalVids . ' video';
                                 if (!empty($subfolders)) $parts[] = count($subfolders) . ' thư mục';
                                 echo implode(' · ', $parts) ?: 'Trống';
                             ?>
@@ -559,32 +616,89 @@ function saveCache($cacheFile, $data) {
                 </div>
                 <?php endif; ?>
 
-                <!-- Combined list: subfolders then videos -->
+                <!-- Combined list: subfolders (collapsible) then videos -->
                 <div class="video-list" id="video-list">
 
-                    <!-- Subfolder items -->
-                    <?php foreach ($subfolders as $idx => $folder): ?>
-                    <a
-                        href="?folder=<?php echo urlencode($folder['id']); ?>&fname=<?php echo urlencode($folder['name']); ?>"
-                        class="folder-item"
-                        id="folder-item-<?php echo $idx; ?>"
-                        data-video-name="<?php echo htmlspecialchars(strtolower($folder['name'])); ?>"
-                    >
-                        <div class="folder-item-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" fill="rgba(255,107,107,0.12)" stroke="#ff6b6b"></path>
-                            </svg>
+                    <!-- Collapsible Subfolder groups -->
+                    <?php foreach ($subfolders as $idx => $folder):
+                        $sfId = $folder['id'];
+                        $sfVids = $subfolderVideos[$sfId] ?? [];
+                        $sfVideoCount = count($sfVids);
+                        // Auto-expand the subfolder that contains the current video
+                        $sfHasActive = false;
+                        if ($currentVideo) {
+                            foreach ($sfVids as $sv) {
+                                if ($sv['id'] === $currentVideo['id']) { $sfHasActive = true; break; }
+                            }
+                        }
+                    ?>
+                    <div class="collapse-folder <?php echo $sfHasActive ? 'open' : ''; ?>" id="collapse-folder-<?php echo $idx; ?>" data-video-name="<?php echo htmlspecialchars(strtolower($folder['name'])); ?>">
+                        <button class="collapse-folder-header" onclick="toggleCollapseFolder(this)" aria-expanded="<?php echo $sfHasActive ? 'true' : 'false'; ?>">
+                            <div class="collapse-folder-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" fill="rgba(255,107,107,0.12)" stroke="#ff6b6b"></path>
+                                </svg>
+                            </div>
+                            <div class="collapse-folder-info">
+                                <span class="collapse-folder-name"><?php echo htmlspecialchars($folder['name']); ?></span>
+                                <span class="collapse-folder-count"><?php echo $sfVideoCount; ?> video</span>
+                            </div>
+                            <div class="collapse-folder-chevron">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="collapse-folder-body">
+                            <div class="collapse-folder-inner">
+                            <?php if (empty($sfVids)): ?>
+                            <div class="collapse-folder-empty">
+                                <span>Không có video</span>
+                            </div>
+                            <?php else: ?>
+                            <?php foreach ($sfVids as $svi => $svideo):
+                                $svIsActive = $currentVideo && $currentVideo['id'] === $svideo['id'];
+                            ?>
+                            <a
+                                href="?v=<?php echo urlencode($svideo['id']); ?>"
+                                class="video-item <?php echo $svIsActive ? 'active' : ''; ?>"
+                                id="sf-video-<?php echo $idx; ?>-<?php echo $svi; ?>"
+                                data-video-id="<?php echo htmlspecialchars($svideo['id']); ?>"
+                                data-video-name="<?php echo htmlspecialchars(strtolower($svideo['name'])); ?>"
+                                data-raw-size="<?php echo $svideo['rawSize'] ?? 0; ?>"
+                            >
+                                <div class="video-item-index">
+                                    <?php if ($svIsActive): ?>
+                                        <div class="playing-indicator">
+                                            <span></span><span></span><span></span>
+                                        </div>
+                                    <?php else: ?>
+                                        <?php echo $svi + 1; ?>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="video-item-info">
+                                    <h3 class="video-item-title"><?php echo htmlspecialchars(pathinfo($svideo['name'], PATHINFO_FILENAME)); ?></h3>
+                                    <div class="video-item-meta">
+                                        <?php if ($svideo['duration']): ?>
+                                        <span class="item-duration">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                            <?php echo $svideo['duration']; ?>
+                                        </span>
+                                        <?php endif; ?>
+                                        <?php if ($svideo['resolution']): ?>
+                                        <span class="item-resolution"><?php echo $svideo['resolution']; ?></span>
+                                        <?php endif; ?>
+                                        <?php if ($svideo['size']): ?>
+                                        <span class="item-size"><?php echo $svideo['size']; ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </a>
+                            <?php endforeach; ?>
+                            <?php endif; ?>
+                            </div>
                         </div>
-                        <div class="folder-item-info">
-                            <span class="folder-item-name"><?php echo htmlspecialchars($folder['name']); ?></span>
-                            <span class="folder-item-type">Thư mục</span>
-                        </div>
-                        <div class="folder-item-arrow">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="9 18 15 12 9 6"></polyline>
-                            </svg>
-                        </div>
-                    </a>
+                    </div>
                     <?php endforeach; ?>
 
                     <!-- Divider between folders and videos -->
@@ -604,6 +718,7 @@ function saveCache($cacheFile, $data) {
                         id="video-item-<?php echo $index; ?>"
                         data-video-id="<?php echo htmlspecialchars($video['id']); ?>"
                         data-video-name="<?php echo htmlspecialchars(strtolower($video['name'])); ?>"
+                        data-raw-size="<?php echo $video['rawSize'] ?? 0; ?>"
                     >
                         <div class="video-item-index">
                             <?php if ($isActive): ?>
