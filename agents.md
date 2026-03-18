@@ -42,6 +42,8 @@
 5. **SEO Optimized**: Maintain proper heading hierarchy and semantic HTML tags.
 6. **Version Control**: Tự động commit và push Github khi cập nhật phiên bản mới của ứng dụng.
 7. **Version Is Mandatory**: Mỗi thay đổi quan trọng bắt buộc phải cập nhật version hiển thị trên trang chủ. Mỗi lần cập nhật version bắt buộc phải tạo commit riêng và push lên Github.
+8. **README Is Mandatory**: Sau mỗi thay đổi lớn, bắt buộc phải cập nhật lại `README.md` để phản ánh đúng tính năng, giao diện và cách sử dụng hiện tại của ứng dụng.
+8. **README Is Mandatory**: Sau mỗi thay đổi lớn, bắt buộc phải cập nhật lại `README.md` để phản ánh đúng tính năng, giao diện và cách sử dụng hiện tại của ứng dụng.
 
 ---
 *Created for effective Vibe Coding and rapid project scaling.*

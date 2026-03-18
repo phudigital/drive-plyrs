@@ -1,0 +1,77 @@
+<h2>Cách mở danh sách video trên mobile</h2>
+<p class="subtitle">Cùng giữ bố cục Player first, nhưng khác ở cách gọi danh sách để đổi video.</p>
+
+<div class="cards">
+  <div class="card" data-choice="sheet" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A1. Bottom sheet</div>
+        <div class="mockup-body">
+          <div class="placeholder" style="height:168px;margin:12px;border-radius:16px;background:linear-gradient(135deg,#30211f,#121212);display:flex;align-items:center;justify-content:center;">Khung video</div>
+          <div style="padding:0 12px 12px;">
+            <div style="height:14px;width:76%;background:#2a2a2a;border-radius:999px;margin-bottom:10px;"></div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <div class="mock-button" style="flex:1;background:#ff6b6b;color:#111;">Mo danh sach</div>
+              <div class="mock-button">Tai</div>
+              <div class="mock-button">Link</div>
+            </div>
+          </div>
+          <div style="margin-top:8px;padding:10px 12px 16px;border-top:1px solid #322; background:#140f0f; border-radius:18px 18px 0 0;">
+            <div style="width:56px;height:5px;border-radius:999px;background:#6f5454;margin:0 auto 10px;"></div>
+            <div style="font-size:12px;color:#ffb3b3;margin-bottom:8px;">Danh sach truot tu day man hinh len</div>
+            <div style="height:50px;background:#2a1818;border-radius:10px;margin-bottom:8px;"></div>
+            <div style="height:50px;background:#1c1c1c;border-radius:10px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Bottom sheet</h3>
+      <p>Nhấn nút hoặc vuốt từ dưới lên để mở danh sách như app mobile. Gọn, tự nhiên, giữ vùng xem sạch.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="inline" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">A2. Inline section</div>
+        <div class="mockup-body">
+          <div class="placeholder" style="height:168px;margin:12px;border-radius:16px;background:linear-gradient(135deg,#30211f,#121212);display:flex;align-items:center;justify-content:center;">Khung video</div>
+          <div style="padding:0 12px 12px;">
+            <div style="height:14px;width:76%;background:#2a2a2a;border-radius:999px;margin-bottom:10px;"></div>
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <div class="mock-button" style="flex:1;background:#ff6b6b;color:#111;">Danh sach ngay ben duoi</div>
+            </div>
+            <div style="padding:10px;border:1px solid #2a2a2a;border-radius:14px;background:#111;">
+              <div style="font-size:12px;color:#aaa;margin-bottom:8px;">Luon hien thu gon, keo xuong de xem</div>
+              <div style="height:50px;background:#2a1818;border-radius:10px;margin-bottom:8px;"></div>
+              <div style="height:50px;background:#1c1c1c;border-radius:10px;margin-bottom:8px;"></div>
+              <div style="height:50px;background:#1c1c1c;border-radius:10px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Inline section</h3>
+      <p>Danh sách nằm ngay dưới player, chỉ thu gọn nhẹ. Rõ ràng và ít ẩn, nhưng màn hình sẽ dài hơn.</p>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons" style="margin-top:24px;">
+  <div class="pros">
+    <h4>Mình đề xuất</h4>
+    <ul>
+      <li>Bottom sheet nếu mục tiêu là xem rõ và thao tác gọn, giống app video hiện đại.</li>
+      <li>Inline section nếu bạn muốn hạn chế hiệu ứng trượt và giữ mọi thứ luôn nhìn thấy.</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>Khác biệt chính</h4>
+    <ul>
+      <li>Bottom sheet tập trung hơn nhưng cần thêm trạng thái mở/đóng.</li>
+      <li>Inline section đơn giản hơn nhưng đẩy phần nội dung xem xuống nhanh hơn.</li>
+    </ul>
+  </div>
+</div>
