@@ -1,7 +1,7 @@
 <?php
 /**
  * Drive Players - Video Proxy Stream
- * Version: 2.9.3
+ * Version: 2.9.4
  *
  * Streams a Google Drive video through this server.
  * This bypasses CORS and client-side blocks on the Drive API.

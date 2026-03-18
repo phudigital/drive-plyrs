@@ -1,7 +1,7 @@
 <?php
 /**
  * Drive Players - Google Drive Video Player
- * Version: 2.9.3
+ * Version: 2.9.4
  *
  * A simple video player that loads video list from Google Drive folder
  * Uses Google Drive API v3 with API Key (no OAuth login required)
@@ -9,7 +9,7 @@
  * Video playback powered by Plyr.io
  */
 
-define('APP_VERSION', '2.9.3');
+define('APP_VERSION', '2.9.4');
 
 session_start();
 require_once __DIR__ . '/config.php';
@@ -126,19 +126,31 @@ if ($folderId && $hasApiKey) {
         $videos     = $cached['videos'];
         $subfolders = $cached['subfolders'] ?? [];
         $subfolderVideos = $cached['subfolder_videos'] ?? [];
+
+        $missingSubfolderVideoGroups = array_filter($subfolders, static function ($subfolder) use ($subfolderVideos) {
+            $subfolderId = $subfolder['id'] ?? '';
+            return $subfolderId !== '' && !array_key_exists($subfolderId, $subfolderVideos);
+        });
+
+        $shouldRefreshSubfolderVideos = !empty($missingSubfolderVideoGroups);
+        if ($shouldRefreshSubfolderVideos) {
+            $subfolderVideos = array_replace(
+                fetchSubfolderVideoGroupsFromDriveAPI($subfolders),
+                $subfolderVideos
+            );
+
+            saveCache($cacheFile, [
+                'videos' => $videos,
+                'subfolders' => $subfolders,
+                'subfolder_videos' => $subfolderVideos,
+            ]);
+        }
     } else {
         $result = fetchVideosFromDriveAPI($folderId);
         if ($result['success']) {
             $videos     = $result['videos'];
             $subfolders = fetchSubfoldersFromDriveAPI($folderId);
-            
-            // Fetch videos from each subfolder for collapsible display
-            foreach ($subfolders as $sf) {
-                $sfResult = fetchVideosFromDriveAPI($sf['id']);
-                if ($sfResult['success'] && !empty($sfResult['videos'])) {
-                    $subfolderVideos[$sf['id']] = $sfResult['videos'];
-                }
-            }
+            $subfolderVideos = fetchSubfolderVideoGroupsFromDriveAPI($subfolders);
             
             saveCache($cacheFile, [
                 'videos' => $videos,

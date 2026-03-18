@@ -14,6 +14,25 @@
 require_once __DIR__ . '/config.php';
 
 /**
+ * Fetch videos for each immediate subfolder of the current folder.
+ */
+function fetchSubfolderVideoGroupsFromDriveAPI($subfolders) {
+    $groupedVideos = [];
+
+    foreach ($subfolders as $subfolder) {
+        $subfolderId = $subfolder['id'] ?? '';
+        if ($subfolderId === '') {
+            continue;
+        }
+
+        $result = fetchVideosFromDriveAPI($subfolderId);
+        $groupedVideos[$subfolderId] = $result['success'] ? $result['videos'] : [];
+    }
+
+    return $groupedVideos;
+}
+
+/**
  * Fetch video files from a Google Drive folder using the API
  */
 function fetchVideosFromDriveAPI($folderId) {

@@ -90,6 +90,11 @@ http://your-site.com/index.php?folder=FOLDER_ID
 
 ## 📝 Version
 
+- **2.9.4** - Tự sửa cache thiếu nội dung con của subfolder
+  - Tự backfill `subfolder_videos` khi cache cũ thiếu dữ liệu
+  - Đồng bộ lại cách đọc nội dung con của subfolder với logic trước đây
+  - Giảm tình trạng sidebar hiện subfolder nhưng không hiện video bên trong
+
 - **2.9.3** - Tối ưu thêm Local Cache cho folder Tam quốc diễn nghĩa
   - Chặn sớm trường hợp Google trả HTML warning thay vì video bytes
   - `proxy.php` báo lỗi rõ ràng nếu không lấy được token tải thật
