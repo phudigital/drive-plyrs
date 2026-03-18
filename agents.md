@@ -40,6 +40,8 @@
 3. **Responsive Design**: Ensure everything works perfectly on mobile devices (sidebar should adapt/hide correctly).
 4. **Clean Code**: Document functions clearly and use descriptive variable names.
 5. **SEO Optimized**: Maintain proper heading hierarchy and semantic HTML tags.
+6. **Version Control**: Tự động commit và push Github khi cập nhật phiên bản mới của ứng dụng.
+7. **Version Is Mandatory**: Mỗi thay đổi quan trọng bắt buộc phải cập nhật version hiển thị trên trang chủ. Mỗi lần cập nhật version bắt buộc phải tạo commit riêng và push lên Github.
 
 ---
 *Created for effective Vibe Coding and rapid project scaling.*

@@ -1,6 +1,6 @@
 /* ==========================================================================
    Drive Players - CSS Design System
-   Version: 2.8.1
+   Version: 2.9.0
    ========================================================================== */
 
 /* ---------- CSS Variables / Design Tokens ---------- */
@@ -371,7 +371,7 @@ body.sidebar-is-closed #menu-toggle {
 .landing-input {
     flex: 1;
     height: 52px;
-    padding: 0 20px;
+    padding: 16px 20px;
     background: var(--bg-secondary);
     border: 2px solid var(--border-color);
     border-radius: var(--radius-md);
@@ -2380,7 +2380,7 @@ body.sidebar-is-closed #menu-toggle {
     .landing-input {
         height: 56px;
         font-size: 14px;
-        padding: 0 16px;
+        padding: 12px 16px;
         border-radius: 16px;
         box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
     }
