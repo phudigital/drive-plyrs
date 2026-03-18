@@ -560,10 +560,43 @@ function saveCache($cacheFile, $data) {
                     </div>
                 </div>
                 <?php endif; ?>
+
+                <?php if (!empty($videos) || !empty($subfolders)): ?>
+                <div class="mobile-sheet-trigger-row">
+                    <button
+                        class="btn-action btn-mobile-sheet-trigger"
+                        id="mobile-sheet-trigger"
+                        type="button"
+                        aria-controls="sidebar"
+                    >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                        <span>Danh sách</span>
+                    </button>
+                </div>
+                <?php endif; ?>
             </div>
 
+            <button
+                class="mobile-sheet-backdrop"
+                id="mobile-sheet-backdrop"
+                type="button"
+                aria-label="Đóng danh sách"
+                hidden
+                tabindex="-1"
+            ></button>
+
             <!-- SIDEBAR -->
-            <aside class="sidebar" id="sidebar">
+            <aside class="sidebar" id="sidebar" aria-labelledby="sidebar-title">
+                <div class="mobile-sheet-handle" id="mobile-sheet-handle" aria-hidden="true">
+                    <span class="mobile-sheet-grip"></span>
+                </div>
                 <!-- Sidebar header -->
                 <div class="sidebar-header">
                     <?php if (count($breadcrumb) > 1):
@@ -577,7 +610,7 @@ function saveCache($cacheFile, $data) {
                     </a>
                     <?php endif; ?>
                     <div class="sidebar-title-wrap">
-                        <h2 class="sidebar-title">
+                        <h2 class="sidebar-title" id="sidebar-title">
                             <?php if (!empty($subfolders) && empty($videos)): ?>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"></path></svg>
                             <?php else: ?>

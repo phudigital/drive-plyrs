@@ -5,10 +5,51 @@
  */
 
 const SIDEBAR_KEY = 'dp_sidebar_open';
+const PHONE_SIDEBAR_QUERY = window.matchMedia('(max-width: 768px)');
 let plyrInstance   = null;
 let _fallbackLevel = 0; // 0=plyr direct, 1=iframe embed, 2=proxy
 let _fallbackTimer = null;
 let _currentFileId = null;
+let sidebarController = null;
+
+function isPhoneViewport() {
+    return PHONE_SIDEBAR_QUERY.matches;
+}
+
+function getPlyrControls() {
+    if (isPhoneViewport()) {
+        return [
+            'play-large',
+            'play',
+            'progress',
+            'fullscreen',
+        ];
+    }
+
+    return [
+        'play-large',
+        'restart',
+        'rewind',
+        'play',
+        'fast-forward',
+        'progress',
+        'current-time',
+        'duration',
+        'mute',
+        'volume',
+        'settings',
+        'pip',
+        'airplay',
+        'fullscreen',
+    ];
+}
+
+function getPlyrSettings() {
+    return isPhoneViewport()
+        ? ['speed']
+        : ['quality', 'speed', 'loop'];
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initPlyrPlayer();
     initSidebarToggle();
@@ -35,23 +76,8 @@ function initPlyrPlayer() {
     _currentFileId = m ? m[1] : null;
 
     plyrInstance = new Plyr(videoEl, {
-        controls: [
-            'play-large',   // The large play button in the center
-            'restart',      // Restart playback
-            'rewind',       // Rewind by the seek time (default 10 seconds)
-            'play',         // Play/pause playback
-            'fast-forward', // Fast forward by the seek time (default 10 seconds)
-            'progress',     // The progress bar and scrubber
-            'current-time', // The current time of playback
-            'duration',     // The full duration of the media
-            'mute',         // Toggle mute
-            'volume',       // Volume control
-            'settings',     // Settings menu
-            'pip',          // Picture-in-picture
-            'airplay',      // Airplay (for Apple devices)
-            'fullscreen',   // Toggle fullscreen
-        ],
-        settings: ['quality', 'speed', 'loop'],
+        controls: getPlyrControls(),
+        settings: getPlyrSettings(),
         speed: {
             selected: 1,
             options: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4],
@@ -358,23 +384,8 @@ function playBlobVideo(blob, container, fileId) {
         const proxyVideo = document.getElementById('plyr-player-proxy');
         if (proxyVideo && window.Plyr) {
             plyrInstance = new Plyr(proxyVideo, {
-                controls: [
-                    'play-large',   
-                    'restart',      
-                    'rewind',       
-                    'play',         
-                    'fast-forward', 
-                    'progress',     
-                    'current-time', 
-                    'duration',     
-                    'mute',         
-                    'volume',       
-                    'settings',     
-                    'pip',          
-                    'airplay',      
-                    'fullscreen',   
-                ],
-                settings: ['speed', 'loop'],
+                controls: getPlyrControls(),
+                settings: isPhoneViewport() ? ['speed'] : ['speed', 'loop'],
                 speed: {
                     selected: 1,
                     options: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4],
@@ -400,41 +411,230 @@ function initSidebarToggle() {
                     || document.getElementById('menu-toggle');
     // Open button: floating pill shown when sidebar is closed
     const openBtn    = document.getElementById('sidebar-open-btn');
+    const mobileTrigger = document.getElementById('mobile-sheet-trigger');
+    const mobileBackdrop = document.getElementById('mobile-sheet-backdrop');
+    const mobileHandle = document.getElementById('mobile-sheet-handle');
+    const filterInput = document.getElementById('filter-input');
     const layout     = document.getElementById('player-layout');
 
     if (!layout) return;
 
     // Restore saved state (default: open)
     const savedOpen = localStorage.getItem(SIDEBAR_KEY);
-    const isOpen    = savedOpen === null ? true : savedOpen === '1';
+    let isDesktopSidebarOpen = savedOpen === null ? true : savedOpen === '1';
+    let isMobileSheetOpen = false;
 
-    if (!isOpen) {
-        layout.classList.add('sidebar-closed');
-        document.body.classList.add('sidebar-is-closed');
+    function isPhoneLayout() {
+        return PHONE_SIDEBAR_QUERY.matches;
     }
 
-    if (toggleBtn) updateToggleIcon(toggleBtn, isOpen);
+    function syncMobileTrigger() {
+        if (mobileTrigger) {
+            mobileTrigger.setAttribute('aria-expanded', isMobileSheetOpen ? 'true' : 'false');
+        }
+    }
 
-    function open() {
+    function syncToggleButton() {
+        if (!toggleBtn) return;
+        if (isPhoneLayout()) {
+            toggleBtn.setAttribute('aria-label', isMobileSheetOpen ? 'Đóng danh sách' : 'Mở danh sách');
+            toggleBtn.setAttribute('title', isMobileSheetOpen ? 'Đóng danh sách (b)' : 'Mở danh sách (b)');
+            return;
+        }
+
+        updateToggleIcon(toggleBtn, isDesktopSidebarOpen);
+    }
+
+    function syncMobileSheetPresentation() {
+        if (mobileBackdrop) {
+            mobileBackdrop.hidden = !isMobileSheetOpen;
+        }
+
+        if (isPhoneLayout()) {
+            layout.classList.toggle('sidebar-closed', !isMobileSheetOpen);
+            document.body.classList.toggle('sidebar-is-closed', !isMobileSheetOpen);
+        }
+    }
+
+    function applyDesktopSidebarState() {
+        if (isPhoneLayout()) {
+            syncMobileSheetPresentation();
+        } else if (isDesktopSidebarOpen) {
+            layout.classList.remove('sidebar-closed');
+            document.body.classList.remove('sidebar-is-closed');
+        } else {
+            layout.classList.add('sidebar-closed');
+            document.body.classList.add('sidebar-is-closed');
+        }
+
+        syncToggleButton();
+    }
+
+    function focusMobileSheetTarget() {
+        if (filterInput) {
+            filterInput.focus();
+            return;
+        }
+
+        toggleBtn?.focus();
+    }
+
+    function openMobileSheet() {
+        if (!isPhoneLayout() || isMobileSheetOpen) return;
+
+        isMobileSheetOpen = true;
+        document.body.classList.add('mobile-sheet-open', 'mobile-sheet-lock');
+        layout.classList.add('mobile-sheet-open');
+        syncMobileSheetPresentation();
+        syncMobileTrigger();
+        syncToggleButton();
+        focusMobileSheetTarget();
+    }
+
+    function closeMobileSheet(options = {}) {
+        const { returnFocus = false } = options;
+        const hadMobileSheetState = isMobileSheetOpen
+            || document.body.classList.contains('mobile-sheet-open')
+            || document.body.classList.contains('mobile-sheet-lock')
+            || layout.classList.contains('mobile-sheet-open');
+
+        if (!hadMobileSheetState) return;
+
+        isMobileSheetOpen = false;
+        document.body.classList.remove('mobile-sheet-open', 'mobile-sheet-lock');
+        layout.classList.remove('mobile-sheet-open');
+        syncMobileSheetPresentation();
+        syncMobileTrigger();
+        syncToggleButton();
+
+        if (returnFocus) {
+            mobileTrigger?.focus();
+        }
+    }
+
+    function clearMobileSheetState() {
+        if (!isMobileSheetOpen
+            && !document.body.classList.contains('mobile-sheet-open')
+            && !document.body.classList.contains('mobile-sheet-lock')
+            && !layout.classList.contains('mobile-sheet-open')) {
+            syncMobileTrigger();
+            return;
+        }
+
+        isMobileSheetOpen = false;
+        document.body.classList.remove('mobile-sheet-open', 'mobile-sheet-lock');
+        layout.classList.remove('mobile-sheet-open');
+        syncMobileSheetPresentation();
+        syncMobileTrigger();
+        syncToggleButton();
+    }
+
+    function closeMobileSheetFromControl(event) {
+        if (!isPhoneLayout()) return;
+
+        const isKeyboardActivation = event instanceof KeyboardEvent
+            || event?.detail === 0;
+
+        closeMobileSheet({ returnFocus: isKeyboardActivation });
+    }
+
+    function openDesktopSidebar() {
+        if (isPhoneLayout()) return;
+
+        isDesktopSidebarOpen = true;
         layout.classList.remove('sidebar-closed');
         document.body.classList.remove('sidebar-is-closed');
         localStorage.setItem(SIDEBAR_KEY, '1');
-        if (toggleBtn) updateToggleIcon(toggleBtn, true);
+        syncToggleButton();
     }
 
-    function close() {
+    function closeDesktopSidebar() {
+        if (isPhoneLayout()) return;
+
+        isDesktopSidebarOpen = false;
         layout.classList.add('sidebar-closed');
         document.body.classList.add('sidebar-is-closed');
         localStorage.setItem(SIDEBAR_KEY, '0');
-        if (toggleBtn) updateToggleIcon(toggleBtn, false);
+        syncToggleButton();
     }
 
-    function toggle() {
-        layout.classList.contains('sidebar-closed') ? open() : close();
+    function toggleDesktopSidebar() {
+        isDesktopSidebarOpen ? closeDesktopSidebar() : openDesktopSidebar();
     }
 
-    if (toggleBtn) toggleBtn.addEventListener('click', toggle);
-    if (openBtn)   openBtn.addEventListener('click', open);
+    function toggleSidebar() {
+        if (isPhoneLayout()) {
+            isMobileSheetOpen ? closeMobileSheet() : openMobileSheet();
+            return;
+        }
+
+        toggleDesktopSidebar();
+    }
+
+    function handleBreakpointChange() {
+        if (isPhoneLayout()) {
+            clearMobileSheetState();
+            syncMobileSheetPresentation();
+        } else {
+            clearMobileSheetState();
+            applyDesktopSidebarState();
+        }
+
+        syncToggleButton();
+    }
+
+    applyDesktopSidebarState();
+    clearMobileSheetState();
+    syncMobileSheetPresentation();
+
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', (event) => {
+            if (isPhoneLayout()) {
+                closeMobileSheetFromControl(event);
+                return;
+            }
+
+            toggleDesktopSidebar();
+        });
+    }
+
+    if (openBtn) {
+        openBtn.addEventListener('click', () => {
+            if (isPhoneLayout()) return;
+            openDesktopSidebar();
+        });
+    }
+
+    if (mobileTrigger) {
+        mobileTrigger.addEventListener('click', () => {
+            if (!isPhoneLayout()) return;
+            openMobileSheet();
+        });
+    }
+
+    if (mobileBackdrop) {
+        mobileBackdrop.addEventListener('click', () => {
+            if (!isPhoneLayout()) return;
+            closeMobileSheet();
+        });
+    }
+
+    if (mobileHandle) {
+        mobileHandle.addEventListener('click', closeMobileSheetFromControl);
+    }
+
+    if (typeof PHONE_SIDEBAR_QUERY.addEventListener === 'function') {
+        PHONE_SIDEBAR_QUERY.addEventListener('change', handleBreakpointChange);
+    } else if (typeof PHONE_SIDEBAR_QUERY.addListener === 'function') {
+        PHONE_SIDEBAR_QUERY.addListener(handleBreakpointChange);
+    }
+
+    sidebarController = {
+        closeMobileSheet,
+        isPhoneLayout,
+        isMobileSheetOpen: () => isMobileSheetOpen,
+        toggleSidebar,
+    };
 }
 
 /**
@@ -525,11 +725,25 @@ function toggleCollapseFolder(headerBtn) {
 
 function initKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (sidebarController?.isMobileSheetOpen()) {
+                e.preventDefault();
+                sidebarController.closeMobileSheet({ returnFocus: true });
+                return;
+            }
+
+            document.activeElement?.blur();
+            return;
+        }
+
         if (isInputFocused()) return;
 
         // '/' — focus sidebar search
         if (e.key === '/') {
             e.preventDefault();
+            if (sidebarController?.isPhoneLayout() && !sidebarController.isMobileSheetOpen()) {
+                sidebarController.toggleSidebar();
+            }
             const input = document.getElementById('filter-input') || document.getElementById('landing-drive-input');
             if (input) input.focus();
         }
@@ -560,14 +774,8 @@ function initKeyboardShortcuts() {
 
         // 'b' — toggle sidebar
         if (e.key === 'b' || e.key === 'B') {
-            const btn = document.getElementById('sidebar-toggle-btn')
-                     || document.getElementById('menu-toggle');
-            btn?.click();
-        }
-
-        // 'Escape' — blur active input
-        if (e.key === 'Escape') {
-            document.activeElement?.blur();
+            e.preventDefault();
+            sidebarController?.toggleSidebar();
         }
     });
 }
@@ -580,7 +788,30 @@ function scrollToActiveVideo() {
     const activeItem = document.querySelector('.video-item.active');
     if (activeItem) {
         setTimeout(() => {
-            activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (PHONE_SIDEBAR_QUERY.matches) {
+                const sidebar = document.getElementById('sidebar');
+                const listContainer = activeItem.closest('#video-list')
+                    || activeItem.closest('.sidebar-content')
+                    || sidebar;
+
+                if (sidebar && listContainer) {
+                    const containerRect = listContainer.getBoundingClientRect();
+                    const itemRect = activeItem.getBoundingClientRect();
+                    const offsetTop = itemRect.top - containerRect.top + listContainer.scrollTop;
+                    const targetTop = offsetTop - ((listContainer.clientHeight - activeItem.offsetHeight) / 2);
+
+                    listContainer.scrollTo({
+                        top: Math.max(0, targetTop),
+                        behavior: 'smooth',
+                    });
+                    return;
+                }
+            }
+
+            activeItem.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+            });
         }, 350);
     }
 }
@@ -705,4 +936,3 @@ function preloadNextVideoIfSmall() {
         console.log(`[DrivePlayers] Skip preloading next video (Size: ${(rawSize / 1024 / 1024).toFixed(1)} MB - exceeds 200MB limit or unknown)`);
     }
 }
-
