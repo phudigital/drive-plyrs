@@ -497,7 +497,16 @@ function saveCache($cacheFile, $data) {
                 <?php endif; ?>
 
                 <!-- Video Player -->
-                <div class="video-container" id="video-container">
+                <div
+                    class="video-container"
+                    id="video-container"
+                    <?php if ($currentVideo): ?>
+                    data-file-id="<?php echo htmlspecialchars($currentVideo['id']); ?>"
+                    data-mime-type="<?php echo htmlspecialchars($currentVideo['mimeType']); ?>"
+                    data-poster="<?php echo htmlspecialchars($currentVideo['thumbnail']); ?>"
+                    data-api-key="<?php echo urlencode(GOOGLE_API_KEY); ?>"
+                    <?php endif; ?>
+                >
                     <?php if ($currentVideo): ?>
                     <video
                         id="plyr-player"
@@ -540,11 +549,12 @@ function saveCache($cacheFile, $data) {
                         <span class="meta-badge ext"><?php echo strtoupper(pathinfo($currentVideo['name'], PATHINFO_EXTENSION)); ?></span>
                         <span class="meta-badge playback-mode" id="playback-mode-badge" style="background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.25);">Phát trực tiếp</span>
                     </div>
+                    <div class="playback-switcher" id="playback-switcher" role="group" aria-label="Chế độ phát video">
+                        <button class="playback-switch-btn active" type="button" data-playback-mode="direct">Phát 1</button>
+                        <button class="playback-switch-btn" type="button" data-playback-mode="embed">Phát 2</button>
+                        <button class="playback-switch-btn" type="button" data-playback-mode="cache">Cache</button>
+                    </div>
                     <div class="video-actions">
-                        <button class="btn-action" id="btn-force-cache" onclick="fallbackToProxy()" title="Tải vào bộ nhớ trình duyệt để phát">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
-                            <span>Phát qua Cache</span>
-                        </button>
                         <a href="<?php echo $currentVideo['download']; ?>" class="btn-action" id="btn-download" target="_blank" rel="noopener">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                             <span>Tải xuống</span>

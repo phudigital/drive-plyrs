@@ -11,6 +11,7 @@ let _fallbackLevel = 0; // 0=plyr direct, 1=iframe embed, 2=proxy
 let _fallbackTimer = null;
 let _currentFileId = null;
 let sidebarController = null;
+let currentPlaybackMode = 'direct';
 
 function isPhoneViewport() {
     return PHONE_SIDEBAR_QUERY.matches;
@@ -52,6 +53,7 @@ function getPlyrSettings() {
 
 document.addEventListener('DOMContentLoaded', () => {
     initPlyrPlayer();
+    initPlaybackModeToggle();
     initSidebarToggle();
     initFilterSearch();
     initKeyboardShortcuts();
@@ -74,6 +76,7 @@ function initPlyrPlayer() {
     const srcUrl = videoEl.querySelector('source')?.src || '';
     const m = srcUrl.match(/files\/([^?]+)/);
     _currentFileId = m ? m[1] : null;
+    currentPlaybackMode = 'direct';
 
     plyrInstance = new Plyr(videoEl, {
         controls: getPlyrControls(),
@@ -153,6 +156,7 @@ function initPlyrPlayer() {
     plyrInstance.on('loadedmetadata', cancelFallbackTimer);
     plyrInstance.on('loadeddata', cancelFallbackTimer);
     plyrInstance.on('playing', cancelFallbackTimer);
+    updatePlaybackModeBadge('Phát trực tiếp', '46, 204, 113', 'direct');
 
     // --- Timeout fallback: 5s — nếu không load được, chuyển sang chế độ nhúng ---
     _fallbackTimer = setTimeout(() => {
@@ -162,6 +166,84 @@ function initPlyrPlayer() {
             fallbackToIframe();
         }
     }, 5000);
+}
+
+function getPlaybackContext() {
+    const container = document.getElementById('video-container');
+    if (!container) return null;
+
+    const fileId = container.dataset.fileId || _currentFileId || getFileIdFromPlayer();
+    const mimeType = container.dataset.mimeType || 'video/mp4';
+    const poster = container.dataset.poster || '';
+    const apiKey = container.dataset.apiKey || '';
+
+    if (!fileId) return null;
+
+    return { container, fileId, mimeType, poster, apiKey };
+}
+
+function buildDirectVideoMarkup({ fileId, mimeType, poster, apiKey }) {
+    const sourceUrl = `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&key=${encodeURIComponent(apiKey)}`;
+
+    return `
+        <video
+            id="plyr-player"
+            playsinline
+            controls
+            crossorigin
+            ${poster ? `data-poster="${poster}"` : ''}
+        >
+            <source
+                src="${sourceUrl}"
+                type="${mimeType}"
+            />
+        </video>
+    `;
+}
+
+function switchToDirectPlayback() {
+    const context = getPlaybackContext();
+    if (!context) return;
+
+    _fallbackLevel = 0;
+    currentPlaybackMode = 'direct';
+
+    if (_fallbackTimer) {
+        clearTimeout(_fallbackTimer);
+        _fallbackTimer = null;
+    }
+
+    if (plyrInstance) {
+        try { plyrInstance.destroy(); } catch (e) {}
+        plyrInstance = null;
+    }
+
+    context.container.innerHTML = buildDirectVideoMarkup(context);
+    initPlyrPlayer();
+    showToast('▶️ Đã chuyển sang Phát 1');
+}
+
+function initPlaybackModeToggle() {
+    document.querySelectorAll('.playback-switch-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const mode = button.dataset.playbackMode;
+            if (!mode || mode === currentPlaybackMode) return;
+
+            if (mode === 'direct') {
+                switchToDirectPlayback();
+                return;
+            }
+
+            if (mode === 'embed') {
+                fallbackToIframe(true);
+                return;
+            }
+
+            if (mode === 'cache') {
+                await fallbackToProxy(true);
+            }
+        });
+    });
 }
 
 /** Fallback helper: extract file ID from current Plyr source URL */
@@ -177,22 +259,23 @@ function getFileIdFromPlayer() {
  * → Iframe is a reliable fallback that handles auth + CORS natively.
  * → NO auto-escalation to cache (too slow via VPS). Cache is manual only.
  */
-function fallbackToIframe() {
-    if (_fallbackLevel >= 1) return;
+function fallbackToIframe(force = false) {
+    if (!force && _fallbackLevel >= 1) return;
     _fallbackLevel = 1;
+    currentPlaybackMode = 'embed';
 
     if (_fallbackTimer) { clearTimeout(_fallbackTimer); _fallbackTimer = null; }
 
-    const fileId = _currentFileId || getFileIdFromPlayer();
-    const container = document.getElementById('video-container');
-    if (!container || !fileId) return;
+    const context = getPlaybackContext();
+    if (!context) return;
+    const { fileId, container } = context;
 
     if (plyrInstance) {
         try { plyrInstance.destroy(); } catch (e) {}
         plyrInstance = null;
     }
 
-    updatePlaybackModeBadge('Chế độ Nhúng', '230, 126, 34');
+    updatePlaybackModeBadge('Chế độ Nhúng', '230, 126, 34', 'embed');
 
     container.innerHTML = `
         <div style="position:relative;width:100%;aspect-ratio:16/9">
@@ -214,26 +297,31 @@ function fallbackToIframe() {
         </div>
     `;
 
-    showToast('⚠️ Chuyển sang chế độ nhúng Google Drive');
+    if (force) {
+        showToast('🎬 Đã chuyển sang Phát 2');
+    } else {
+        showToast('⚠️ Chuyển sang chế độ nhúng Google Drive');
+    }
 }
 
 /**
  * Level 2 → Level 3: Download proxy stream to Browser Cache / RAM then play
  */
-async function fallbackToProxy() {
-    if (_fallbackLevel >= 2) return;
+async function fallbackToProxy(force = false) {
+    if (!force && _fallbackLevel >= 2) return;
     _fallbackLevel = 2;
+    currentPlaybackMode = 'cache';
 
     if (_fallbackTimer) {
         clearInterval(_fallbackTimer);
         _fallbackTimer = null;
     }
 
-    const fileId = _currentFileId;
-    const container = document.getElementById('video-container');
-    if (!container || !fileId) return;
+    const context = getPlaybackContext();
+    if (!context) return;
+    const { fileId, container } = context;
 
-    updatePlaybackModeBadge('Tải Cache...', '52, 152, 219');
+    updatePlaybackModeBadge('Tải Cache...', '52, 152, 219', 'cache');
 
     const proxyUrl = `proxy.php?id=${encodeURIComponent(fileId)}`;
 
@@ -398,6 +486,8 @@ function playBlobVideo(blob, container, fileId) {
         }
     } catch (e) {}
 
+    currentPlaybackMode = 'cache';
+    updatePlaybackModeBadge('Phát từ Cache', '155, 89, 182', 'cache');
     showToast('⚡ Phát từ Local Cache thành công!');
 }
 
@@ -872,13 +962,23 @@ function isInputFocused() {
     return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
 }
 
-function updatePlaybackModeBadge(modeText, rgbColor) {
+function setActivePlaybackMode(modeKey) {
+    currentPlaybackMode = modeKey;
+    document.querySelectorAll('.playback-switch-btn').forEach((button) => {
+        button.classList.toggle('active', button.dataset.playbackMode === modeKey);
+    });
+}
+
+function updatePlaybackModeBadge(modeText, rgbColor, modeKey = null) {
     const badge = document.getElementById('playback-mode-badge');
     if (!badge) return;
     badge.textContent = modeText;
     badge.style.background = `rgba(${rgbColor}, 0.15)`;
     badge.style.color = `rgb(${rgbColor})`;
     badge.style.border = `1px solid rgba(${rgbColor}, 0.25)`;
+    if (modeKey) {
+        setActivePlaybackMode(modeKey);
+    }
 }
 
 /* ==========================================================================
