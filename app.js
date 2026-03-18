@@ -1,6 +1,6 @@
 /**
  * Drive Players - JavaScript
- * Version: 2.9.1
+ * Version: 2.9.2
  * Video playback powered by Plyr.io
  */
 
@@ -374,16 +374,13 @@ async function fallbackToProxy(options = {}) {
 
     const context = getPlaybackContext();
     if (!context) return;
-    const { fileId, container, mimeType, apiKey } = context;
+    const { fileId, container, mimeType } = context;
 
     updatePlaybackModeBadge('Tải Cache...', '52, 152, 219', 'cache', {
         persistSelection: config.persistSelection,
     });
 
     const proxyUrl = `proxy.php?id=${encodeURIComponent(fileId)}`;
-    const directUrl = apiKey
-        ? `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&key=${encodeURIComponent(apiKey)}`
-        : null;
 
     // Initial Loading UI
     container.innerHTML = `
@@ -392,7 +389,7 @@ async function fallbackToProxy(options = {}) {
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
             </svg>
             <div class="cache-dl-title">Đang tải video vào Cache...</div>
-            <div class="cache-dl-desc" id="cache-dl-desc">Đang kết nối tốc độ cao từ Google CDN...</div>
+            <div class="cache-dl-desc" id="cache-dl-desc">Đang chuẩn bị tải qua Local Cache...</div>
             
             <div class="cache-dl-progress-box">
                 <div class="cache-dl-progress-bar" id="cache-dl-bar"></div>
@@ -407,24 +404,8 @@ async function fallbackToProxy(options = {}) {
 
     let fetchUrl = proxyUrl;
     let usingDirect = false;
-
-    if (directUrl) {
-        try {
-            // HEAD request to test CORS + reachability without downloading data
-            const test = await fetch(directUrl, { method: 'HEAD', mode: 'cors' });
-            if (test.ok || test.status === 206) {
-                fetchUrl = directUrl;
-                usingDirect = true;
-                console.log('[DrivePlayers] Cache: dùng Google Drive CDN trực tiếp (tốc độ cao)');
-                const desc = document.getElementById('cache-dl-desc');
-                if (desc) desc.textContent = '⚡ Đang tải từ Google CDN (tốc độ tối đa)...';
-            }
-        } catch (corsErr) {
-            console.warn('[DrivePlayers] Cache: Google CDN bị CORS, chuyển sang proxy.php');
-            const desc = document.getElementById('cache-dl-desc');
-            if (desc) desc.textContent = '🔄 Chuyển sang proxy server...';
-        }
-    }
+    const desc = document.getElementById('cache-dl-desc');
+    if (desc) desc.textContent = '⚡ Đang tải qua proxy ổn định của Google Drive...';
 
     try {
         const response = await fetch(fetchUrl, usingDirect ? { mode: 'cors' } : {});

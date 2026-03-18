@@ -11,6 +11,7 @@ Trình xem video từ Google Drive với giao diện đẹp như YouTube. Chỉ 
 - 📱 **Responsive** - hoạt động tốt trên mobile
 - 🌙 **Dark theme** đẹp mắt kiểu YouTube
 - ⬇️ **Tải xuống** video trực tiếp
+- 🎛️ **3 chế độ phát**: Phát 1, Phát 2 và Local Cache
 - ⌨️ **Keyboard shortcuts** (nhấn `/` để tìm kiếm)
 - 💾 **Cache tự động** - tải nhanh hơn lần sau
 - 🔒 **Không cần đăng nhập** - chỉ cần Google API Key miễn phí
@@ -88,6 +89,11 @@ http://your-site.com/index.php?folder=FOLDER_ID
 ```
 
 ## 📝 Version
+
+- **2.9.2** - Sửa toàn bộ luồng phát từ Local Cache
+  - Cache mode chuyển sang nguồn tải công khai ổn định của Google Drive
+  - Tăng độ ổn định khi tải file lớn và phát từ blob local
+  - Giảm phụ thuộc vào `alt=media` vốn dễ trả lỗi `403`
 
 - **1.1.0** - Thêm điều hướng thư mục con
   - **Breadcrumb navigation** - hiển thị đường dẫn thư mục, click để quay lại
