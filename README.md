@@ -90,6 +90,11 @@ http://your-site.com/index.php?folder=FOLDER_ID
 
 ## 📝 Version
 
+- **2.9.3** - Tối ưu thêm Local Cache cho folder Tam quốc diễn nghĩa
+  - Chặn sớm trường hợp Google trả HTML warning thay vì video bytes
+  - `proxy.php` báo lỗi rõ ràng nếu không lấy được token tải thật
+  - `app.js` kiểm tra `content-type` trước khi dựng blob player
+
 - **2.9.2** - Sửa toàn bộ luồng phát từ Local Cache
   - Cache mode chuyển sang nguồn tải công khai ổn định của Google Drive
   - Tăng độ ổn định khi tải file lớn và phát từ blob local

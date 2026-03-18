@@ -1,6 +1,6 @@
 /**
  * Drive Players - JavaScript
- * Version: 2.9.2
+ * Version: 2.9.3
  * Video playback powered by Plyr.io
  */
 
@@ -410,6 +410,10 @@ async function fallbackToProxy(options = {}) {
     try {
         const response = await fetch(fetchUrl, usingDirect ? { mode: 'cors' } : {});
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const responseType = (response.headers.get('content-type') || '').toLowerCase();
+        if (responseType.includes('text/html')) {
+            throw new Error('Google Drive trả về trang xác nhận thay vì video');
+        }
 
         const contentLength = response.headers.get('content-length');
         if (!contentLength) {

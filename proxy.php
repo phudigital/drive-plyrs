@@ -1,7 +1,7 @@
 <?php
 /**
  * Drive Players - Video Proxy Stream
- * Version: 2.9.2
+ * Version: 2.9.3
  *
  * Streams a Google Drive video through this server.
  * This bypasses CORS and client-side blocks on the Drive API.
@@ -83,6 +83,12 @@ if (preg_match('/content-type:\s*text\/html/i', $probeHeaders)) {
     }
     if ($uuid) {
         $driveUrl .= '&uuid=' . rawurlencode($uuid);
+    }
+
+    if (!$confirm && !$uuid) {
+        @unlink($cookieFile);
+        http_response_code(502);
+        exit('Google Drive returned a confirmation page without downloadable token');
     }
 }
 
