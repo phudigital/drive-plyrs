@@ -1,7 +1,7 @@
 <?php
 /**
  * Drive Players - Google Drive Video Player
- * Version: 2.9.0
+ * Version: 2.9.1
  *
  * A simple video player that loads video list from Google Drive folder
  * Uses Google Drive API v3 with API Key (no OAuth login required)
@@ -9,7 +9,7 @@
  * Video playback powered by Plyr.io
  */
 
-define('APP_VERSION', '2.9.0');
+define('APP_VERSION', '2.9.1');
 
 session_start();
 require_once __DIR__ . '/config.php';
@@ -550,9 +550,28 @@ function saveCache($cacheFile, $data) {
                         <span class="meta-badge playback-mode" id="playback-mode-badge" style="background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.25);">Phát trực tiếp</span>
                     </div>
                     <div class="playback-switcher" id="playback-switcher" role="group" aria-label="Chế độ phát video">
-                        <button class="playback-switch-btn active" type="button" data-playback-mode="direct">Phát 1</button>
-                        <button class="playback-switch-btn" type="button" data-playback-mode="embed">Phát 2</button>
-                        <button class="playback-switch-btn" type="button" data-playback-mode="cache">Cache</button>
+                        <button class="playback-switch-btn active" type="button" data-playback-mode="direct">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                            <span>Phát 1</span>
+                        </button>
+                        <button class="playback-switch-btn" type="button" data-playback-mode="embed">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                                <line x1="8" y1="10" x2="16" y2="10"></line>
+                                <line x1="8" y1="14" x2="13" y2="14"></line>
+                            </svg>
+                            <span>Phát 2</span>
+                        </button>
+                        <button class="playback-switch-btn" type="button" data-playback-mode="cache">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span>Cache</span>
+                        </button>
                     </div>
                     <div class="video-actions">
                         <a href="<?php echo $currentVideo['download']; ?>" class="btn-action" id="btn-download" target="_blank" rel="noopener">

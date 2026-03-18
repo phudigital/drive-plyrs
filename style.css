@@ -1,6 +1,6 @@
 /* ==========================================================================
    Drive Players - CSS Design System
-   Version: 2.9.0
+   Version: 2.9.1
    ========================================================================== */
 
 /* ---------- CSS Variables / Design Tokens ---------- */
@@ -918,9 +918,14 @@ body.sidebar-is-closed #menu-toggle {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 999px;
     width: fit-content;
+    margin-bottom: 2px;
 }
 
 .playback-switch-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     min-height: 34px;
     padding: 8px 14px;
     border-radius: 999px;
@@ -940,6 +945,11 @@ body.sidebar-is-closed #menu-toggle {
     background: var(--accent-gradient);
     color: #fff;
     box-shadow: 0 10px 24px rgba(255, 107, 107, 0.2);
+}
+
+.playback-switch-btn svg {
+    flex-shrink: 0;
+    opacity: 0.88;
 }
 
 .btn-action {
@@ -963,6 +973,8 @@ body.sidebar-is-closed #menu-toggle {
 
 .btn-action svg {
     flex-shrink: 0;
+    width: 16px;
+    height: 16px;
 }
 
 /* ---------- Mobile Sheet Helpers ---------- */
@@ -2038,7 +2050,7 @@ body.sidebar-is-closed #menu-toggle {
 
     .playback-switch-btn {
         flex: 1 1 0;
-        min-height: 38px;
+        min-height: 40px;
         padding: 8px 10px;
         font-size: 11px;
     }
@@ -2056,19 +2068,20 @@ body.sidebar-is-closed #menu-toggle {
 
     /* --- Action buttons --- */
     .video-actions {
-        gap: 6px;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
     }
 
     .btn-action {
-        min-height: 40px;
+        width: 100%;
+        min-height: 42px;
         padding: 9px 12px;
         border-radius: 14px;
         display: inline-flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         gap: 6px;
-        flex: 0 1 auto;
         font-size: 12px;
     }
 
@@ -2649,7 +2662,7 @@ body.sidebar-is-closed #menu-toggle {
     }
 
     .btn-action {
-        min-height: 38px;
+        min-height: 40px;
         padding: 8px 10px;
         border-radius: 13px;
     }
